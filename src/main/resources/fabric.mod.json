@@ -35,5 +35,6 @@
 		"java": ">=25",
 		"fabric-api": "*",
 		"fabric-language-kotlin": "*"
-	}
+	},
+	"accessWidener": "official-server-list.accesswidener"
 }

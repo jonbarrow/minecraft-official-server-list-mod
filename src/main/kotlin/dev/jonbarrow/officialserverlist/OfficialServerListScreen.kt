@@ -167,7 +167,12 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.tr
 	}
 
 	private fun returnToParent() {
-		minecraft.setScreen(parent)
+		val mp = parent as? JoinMultiplayerScreen
+		if (mp != null) {
+			mp.refreshServerList()
+		} else {
+			minecraft.setScreen(parent)
+		}
 	}
 
 	private fun updateButtonStates() {

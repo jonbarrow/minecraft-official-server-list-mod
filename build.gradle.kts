@@ -90,3 +90,7 @@ publishing {
 		// retrieving dependencies.
 	}
 }
+
+loom {
+	accessWidenerPath = file("src/main/resources/official-server-list.accesswidener")
+}
