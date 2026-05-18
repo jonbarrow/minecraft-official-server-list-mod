@@ -16,7 +16,7 @@ import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import java.util.concurrent.CompletableFuture
 
-class ServerDetailsScreen(private val parent: Screen, private val slug: String, initialData: ServerDetails? = null) : Screen(Component.literal("Server Details")) {
+class ServerDetailsScreen(private val parent: Screen, private val slug: String, initialData: ServerDetails? = null) : Screen(Component.translatable("officialserverlist.screen.server_details.title")) {
 	companion object {
 		private const val HEADER_TOP = 8
 		private const val HEADER_HEIGHT = 70
@@ -29,13 +29,13 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 		private val LINK_HIGHLIGHTED_SPRITE = Identifier.fromNamespaceAndPath("minecraft", "icon/link_highlighted")
 	}
 
-	enum class Tab(val displayName: String) {
-		DETAILS("Details"),
-		RULES("Rules"),
-		GALLERY("Gallery"),
-		BADGES("Badges"),
-		EVENTS("Events"),
-		ESSENTIALS("Essentials")
+	enum class Tab(val displayNameKey: String) {
+		DETAILS("officialserverlist.tab.details"),
+		RULES("officialserverlist.tab.rules"),
+		GALLERY("officialserverlist.tab.gallery"),
+		BADGES("officialserverlist.tab.badges"),
+		EVENTS("officialserverlist.tab.events"),
+		ESSENTIALS("officialserverlist.tab.essentials")
 	}
 
 	data class IconLink(val x1: Int, val y1: Int, val x2: Int, val y2: Int, val url: String, val socialMedia: String? = null)
@@ -68,7 +68,7 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 
 		for ((index, tab) in tabs.withIndex()) {
 			val tabX = SIDE_PADDING + index * (tabWidth + tabSpacing)
-			val button = Button.builder(Component.literal(tab.displayName)) {
+			val button = Button.builder(Component.translatable(tab.displayNameKey)) {
 				activeTab = tab
 				if (tab == Tab.ESSENTIALS) ensureWorkbookLoaded()
 				if (tab == Tab.EVENTS) ensureEventsLoaded()
@@ -87,7 +87,7 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 			detailsList = DetailsListWidget(width, listHeight, listTop, details, activeTab, workbookQuestions, workbookAnswers, events)
 			addRenderableWidget(detailsList!!)
 		} else if (loading) {
-			val widget = LoadingDotsWidget(font, Component.literal("Loading details"))
+			val widget = LoadingDotsWidget(font, Component.translatable("officialserverlist.loading", Component.translatable("officialserverlist.loading_target.server_details")))
 			widget.setPosition(width / 2 - widget.width / 2, height / 2 - 10)
 			addRenderableWidget(widget)
 		}
@@ -261,18 +261,18 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 
 		val address = data.javaAddress?.let {
 			if (data.javaPort != null && data.javaPort != 25565) "$it:${data.javaPort}" else it
-		} ?: "No address"
+		} ?: Component.translatable("officialserverlist.label.no_address").string
 
 		graphics.text(font, TextUtils.sanitize(address), textX, lineY, 0xFF8FBCDB.toInt(), true)
 		lineY += font.lineHeight + 1
 
-		val statusText = if (data.isOnline) "Online" else "Offline"
+		val statusText = if (data.isOnline) Component.translatable("officialserverlist.label.online").string else Component.translatable("officialserverlist.label.offline").string
 		val statusColor = if (data.isOnline) 0xFF55FF55.toInt() else 0xFFFF5555.toInt()
 
 		graphics.text(font, "$statusText  ${data.currentOnlinePlayers}/${data.currentMaxPlayers}", textX, lineY, statusColor, false)
 		lineY += font.lineHeight + 1
 
-		graphics.text(font, "${data.votes} votes  |  ${data.favoriteCount} favorites", textX, lineY, 0xFFAAAAAA.toInt(), false)
+		graphics.text(font, Component.translatable("officialserverlist.label.votes_favorites", data.votes, data.favoriteCount).string, textX, lineY, 0xFFAAAAAA.toInt(), false)
 
 		if (!data.mapLink.isNullOrBlank()) {
 			val buttonSize = 20
@@ -362,7 +362,7 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 				}
 
 				if (data.rawMotd.isNotBlank()) {
-					y = drawSectionHeader(graphics, font, "MOTD", left, y, rowWidth)
+					y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.motd").string, left, y, rowWidth)
 
 					for (rawLine in data.rawMotd.split("\n")) {
 						graphics.text(font, Component.literal(rawLine), left, y, 0xFFFFFFFF.toInt(), false)
@@ -373,19 +373,19 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 				}
 
 				if (data.longDescription.isNotBlank()) {
-					y = drawSectionHeader(graphics, font, "About", left, y, rowWidth)
+					y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.about").string, left, y, rowWidth)
 					y = drawMarkdown(graphics, font, data.longDescription, left, y, rowWidth, mouseX, mouseY)
 					y += 12
 				}
 
 				if (data.version.isNotEmpty()) {
-					y = drawSectionHeader(graphics, font, "Supported Versions", left, y, rowWidth)
+					y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.supported_versions").string, left, y, rowWidth)
 					y = drawTagPillsInner(graphics, font, data.version.map { it.name }, left, y, rowWidth)
 					y += 12
 				}
 
 				if (data.serverTags.isNotEmpty()) {
-					y = drawSectionHeader(graphics, font, "Tags", left, y, rowWidth)
+					y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.tags").string, left, y, rowWidth)
 					y = drawTagPillsInner(graphics, font, data.serverTags.map { it.name }, left, y, rowWidth)
 					y += 12
 				}
@@ -393,22 +393,22 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 				val meta = mutableListOf<String>()
 
 				if (data.serverLanguage.isNotEmpty()) {
-					meta.add("Languages: " + data.serverLanguage.joinToString(", ") { it.name })
+					meta.add(Component.translatable("officialserverlist.label.languages_list", data.serverLanguage.joinToString(", ") { it.name }).string)
 				}
 
 				if (data.serverLocation.isNotEmpty()) {
-					meta.add("Location: " + data.serverLocation.joinToString(", ") { it.name })
+					meta.add(Component.translatable("officialserverlist.label.location_list", data.serverLocation.joinToString(", ") { it.name }).string)
 				}
 
 				if (data.lookupVersion != null) {
-					meta.add("Server software: ${data.lookupVersion}")
+					meta.add(Component.translatable("officialserverlist.label.server_software", data.lookupVersion).string)
 				}
 
-				meta.add("Launched: ${TextUtils.formatDate(data.launchedOn)}")
-				meta.add("Claimed: ${TextUtils.formatDate(data.claimedOn)}")
+				meta.add(Component.translatable("officialserverlist.label.launched", TextUtils.formatDate(data.launchedOn)).string)
+				meta.add(Component.translatable("officialserverlist.label.claimed", TextUtils.formatDate(data.claimedOn)).string)
 
 				if (meta.isNotEmpty()) {
-					y = drawSectionHeader(graphics, font, "Info", left, y, rowWidth)
+					y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.info").string, left, y, rowWidth)
 
 					for (line in meta) {
 						graphics.text(font, line, left, y, 0xFFAAAAAA.toInt(), false)
@@ -419,7 +419,7 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 				}
 
 				if (!data.presentationVideoUrl.isNullOrBlank()) {
-					y = drawSectionHeader(graphics, font, "Presentation Video", left, y, rowWidth)
+					y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.presentation_video").string, left, y, rowWidth)
 					val url = data.presentationVideoUrl
 					val urlWidth = font.width(url)
 					val hover = mouseX in left..(left + urlWidth) && mouseY in y..(y + font.lineHeight)
@@ -434,13 +434,13 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 				var y = top
 				val links = mutableListOf<Pair<String, String>>()
 
-				if (!data.codeOfConductUrl.isNullOrBlank()) links.add("Code of Conduct" to data.codeOfConductUrl)
+				if (!data.codeOfConductUrl.isNullOrBlank()) links.add(Component.translatable("officialserverlist.section.code_of_conduct").string to data.codeOfConductUrl)
 
-				data.privacyPolicyUrl?.let { links.add("Privacy Policy" to it) }
-				data.termsOfServiceUrl?.let { links.add("Terms of Service" to it) }
+				data.privacyPolicyUrl?.let { links.add(Component.translatable("officialserverlist.section.privacy_policy").string to it) }
+				data.termsOfServiceUrl?.let { links.add(Component.translatable("officialserverlist.section.terms_of_service").string to it) }
 
 				if (links.isNotEmpty()) {
-					y = drawSectionHeader(graphics, font, "Links", left, y, rowWidth)
+					y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.links").string, left, y, rowWidth)
 
 					for ((label, url) in links) {
 						graphics.text(font, "• $label: ", left, y, 0xFFAAAAAA.toInt(), false)
@@ -464,10 +464,10 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 				}
 
 				if (!data.codeOfConduct.isNullOrBlank()) {
-					y = drawSectionHeader(graphics, font, "Code of Conduct", left, y, rowWidth)
+					y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.code_of_conduct").string, left, y, rowWidth)
 					drawMarkdown(graphics, font, data.codeOfConduct, left, y, rowWidth, mouseX, mouseY)
 				} else if (links.isEmpty()) {
-					graphics.text(font, "No rules provided.", left, y, 0xFFAAAAAA.toInt(), false)
+					graphics.text(font, Component.translatable("officialserverlist.empty.no_rules").string, left, y, 0xFFAAAAAA.toInt(), false)
 				}
 			}
 
@@ -476,7 +476,7 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 				val screenshots = data.screenshotImages
 
 				if (screenshots.isNullOrEmpty()) {
-					graphics.text(font, "No screenshots provided.", left, y, 0xFFAAAAAA.toInt(), false)
+					graphics.text(font, Component.translatable("officialserverlist.empty.no_screenshots").string, left, y, 0xFFAAAAAA.toInt(), false)
 					return
 				}
 
@@ -508,7 +508,7 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 				val badges = data.serverBadges
 
 				if (badges.isNullOrEmpty()) {
-					graphics.text(font, "No badges earned.", left, y, 0xFFAAAAAA.toInt(), false)
+					graphics.text(font, Component.translatable("officialserverlist.empty.no_badges").string, left, y, 0xFFAAAAAA.toInt(), false)
 					return
 				}
 
@@ -542,12 +542,12 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 				var y = top
 
 				if (events == null) {
-					graphics.text(font, "Loading...", left, y, 0xFFAAAAAA.toInt(), false)
+					graphics.text(font, Component.translatable("officialserverlist.empty.loading").string, left, y, 0xFFAAAAAA.toInt(), false)
 					return
 				}
 
 				if (events.isEmpty()) {
-					graphics.text(font, "No events scheduled.", left, y, 0xFFAAAAAA.toInt(), false)
+					graphics.text(font, Component.translatable("officialserverlist.empty.no_events").string, left, y, 0xFFAAAAAA.toInt(), false)
 					return
 				}
 
@@ -614,7 +614,7 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 				graphics.text(font, dateTruncated, textX, ly, 0xFF8FBCDB.toInt(), false)
 				ly += font.lineHeight + 2
 
-				graphics.text(font, "${event.eventJoinedCount} joined", textX, ly, 0xFFAAAAAA.toInt(), false)
+				graphics.text(font, Component.translatable("officialserverlist.label.joined_count", event.eventJoinedCount).string, textX, ly, 0xFFAAAAAA.toInt(), false)
 			}
 
 			private fun truncateToWidth(font: net.minecraft.client.gui.Font, text: String, maxWidth: Int): String {
@@ -634,13 +634,13 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 			private fun renderEssentialsTab(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, left: Int, top: Int, rowWidth: Int) {
 				var y = top
 				if (questions == null || answers == null) {
-					graphics.text(font, "Loading...", left, y, 0xFFAAAAAA.toInt(), false)
+					graphics.text(font, Component.translatable("officialserverlist.empty.loading").string, left, y, 0xFFAAAAAA.toInt(), false)
 					return
 				}
 
 				val publicAnswers = answers.filter { it.isPublic && !it.isIncomplete }
 				if (publicAnswers.isEmpty()) {
-					graphics.text(font, "No community essentials provided.", left, y, 0xFFAAAAAA.toInt(), false)
+					graphics.text(font, Component.translatable("officialserverlist.empty.no_essentials").string, left, y, 0xFFAAAAAA.toInt(), false)
 					return
 				}
 

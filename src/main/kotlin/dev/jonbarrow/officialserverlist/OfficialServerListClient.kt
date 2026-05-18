@@ -21,12 +21,13 @@ object OfficialServerListClient : ClientModInitializer {
 
 	private fun addCustomButton(screen: JoinMultiplayerScreen) {
 		val widgets = Screens.getWidgets(screen)
+		val buttonLabel = Component.translatable("officialserverlist.button.server_list")
 
-		if (widgets.any { it is Button && it.message.string == "Official Server List" }) {
+		if (widgets.any { it is Button && it.message.string == buttonLabel.string }) {
 			return
 		}
 
-		val button = Button.builder(Component.literal("Official Server List")) { _ ->
+		val button = Button.builder(buttonLabel) { _ ->
 			Minecraft.getInstance().setScreen(OfficialServerListScreen(screen))
 		}.bounds(10, 6, 120, 20).build()
 

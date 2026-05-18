@@ -15,7 +15,7 @@ import net.minecraft.client.renderer.RenderPipelines
 import net.minecraft.network.chat.Component
 import java.util.concurrent.CompletableFuture
 
-class EventDetailsScreen(private val parent: Screen, private val slug: String, initialData: EventDetails? = null) : Screen(Component.literal("Event Details")) {
+class EventDetailsScreen(private val parent: Screen, private val slug: String, initialData: EventDetails? = null) : Screen(Component.translatable("officialserverlist.screen.event_details.title")) {
 	companion object {
 		private const val SIDE_PADDING = 12
 		private const val CONTENT_TOP = 8
@@ -43,7 +43,7 @@ class EventDetailsScreen(private val parent: Screen, private val slug: String, i
 			detailsList = EventListWidget(width, listHeight, listTop, event)
 			addRenderableWidget(detailsList!!)
 		} else if (loading) {
-			val widget = LoadingDotsWidget(font, Component.literal("Loading event"))
+			val widget = LoadingDotsWidget(font, Component.translatable("officialserverlist.loading", Component.translatable("officialserverlist.loading_target.event")))
 			widget.setPosition(width / 2 - widget.width / 2, height / 2 - 10)
 			addRenderableWidget(widget)
 		}
@@ -66,7 +66,7 @@ class EventDetailsScreen(private val parent: Screen, private val slug: String, i
 				result.onSuccess { entry ->
 					event = entry
 				}.onFailure { err ->
-					errorMessage = err.message ?: "Unknown error"
+					errorMessage = err.message ?: Component.translatable("officialserverlist.error.unknown").string
 				}
 				clearWidgets()
 				init(width, height)
@@ -109,7 +109,7 @@ class EventDetailsScreen(private val parent: Screen, private val slug: String, i
 		super.extractRenderState(graphics, mouseX, mouseY, delta)
 
 		errorMessage?.let { err ->
-			val msg = "Error: $err"
+			val msg = Component.translatable("officialserverlist.label.error_prefix", err).string
 			val w = font.width(msg)
 			graphics.text(font, msg, width / 2 - w / 2, height / 2 - 30, 0xFFFF5555.toInt(), true)
 		}
@@ -190,42 +190,44 @@ class EventDetailsScreen(private val parent: Screen, private val slug: String, i
 					graphics.blit(RenderPipelines.GUI_TEXTURED, featured.id, left, ly, 0f, 0f, rowWidth, featuredHeight, rowWidth, featuredHeight)
 				} else {
 					graphics.fill(left, ly, left + rowWidth, ly + featuredHeight, 0xFF333333.toInt())
-					val placeholder = "Loading..."
+					val placeholder = Component.translatable("officialserverlist.empty.loading").string
 					val pw = font.width(placeholder)
 					graphics.text(font, placeholder, left + rowWidth / 2 - pw / 2, ly + featuredHeight / 2 - font.lineHeight / 2, 0xFFAAAAAA.toInt(), false)
 				}
 
 				ly += featuredHeight + 12
 
-				ly = drawSectionHeader(graphics, font, "When", left, ly, rowWidth)
-				graphics.text(font, "Starts: ${TextUtils.formatDateTime(data.startingDate)}", left, ly, 0xFFFFFFFF.toInt(), false)
+				ly = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.when").string, left, ly, rowWidth)
+				graphics.text(font, Component.translatable("officialserverlist.label.event_starts", TextUtils.formatDateTime(data.startingDate)).string, left, ly, 0xFFFFFFFF.toInt(), false)
 				ly += font.lineHeight + 2
-				graphics.text(font, "Ends: ${TextUtils.formatDateTime(data.endingDate)}", left, ly, 0xFFFFFFFF.toInt(), false)
+				graphics.text(font, Component.translatable("officialserverlist.label.event_ends", TextUtils.formatDateTime(data.endingDate)).string, left, ly, 0xFFFFFFFF.toInt(), false)
 				ly += font.lineHeight + 12
 
-				ly = drawSectionHeader(graphics, font, "Participation", left, ly, rowWidth)
-				graphics.text(font, "${data.eventJoinedCount} player${if (data.eventJoinedCount == 1) "" else "s"} joined", left, ly, 0xFFFFFFFF.toInt(), false)
+				ly = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.participation").string, left, ly, rowWidth)
+				val joinedKey = if (data.eventJoinedCount == 1) "officialserverlist.label.player_joined" else "officialserverlist.label.players_joined"
+				graphics.text(font, Component.translatable(joinedKey, data.eventJoinedCount).string, left, ly, 0xFFFFFFFF.toInt(), false)
 				ly += font.lineHeight + 12
 
 				if (data.longDescription.isNotBlank()) {
-					ly = drawSectionHeader(graphics, font, "About This Event", left, ly, rowWidth)
+					ly = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.about_this_event").string, left, ly, rowWidth)
 					ly = drawMarkdown(graphics, font, data.longDescription, left, ly, rowWidth)
 					ly += 12
 				}
 
 				if (data.prizes.isNotBlank()) {
-					ly = drawSectionHeader(graphics, font, "Prizes", left, ly, rowWidth)
+					ly = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.prizes").string, left, ly, rowWidth)
 					ly = drawMarkdown(graphics, font, data.prizes, left, ly, rowWidth)
 					ly += 12
 				}
 
 				if (!data.codeOfConduct.isNullOrBlank() || !data.codeOfConductUrl.isNullOrBlank()) {
-					ly = drawSectionHeader(graphics, font, "Code of Conduct", left, ly, rowWidth)
+					ly = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.code_of_conduct").string, left, ly, rowWidth)
 
 					if (!data.codeOfConductUrl.isNullOrBlank()) {
 						val url = data.codeOfConductUrl
-						graphics.text(font, "Full text: ", left, ly, 0xFFAAAAAA.toInt(), false)
-						val labelWidth = font.width("Full text: ")
+						val labelText = Component.translatable("officialserverlist.label.full_text").string
+						graphics.text(font, labelText, left, ly, 0xFFAAAAAA.toInt(), false)
+						val labelWidth = font.width(labelText)
 						val urlWidth = font.width(url)
 						val hover = mouseX in (left + labelWidth)..(left + labelWidth + urlWidth) && mouseY in ly..(ly + font.lineHeight)
 						val color = if (hover) 0xFF55FFFF.toInt() else 0xFF8FBCDB.toInt()
@@ -242,7 +244,7 @@ class EventDetailsScreen(private val parent: Screen, private val slug: String, i
 				}
 
 				if (!data.presentationVideoUrl.isNullOrBlank()) {
-					ly = drawSectionHeader(graphics, font, "Presentation Video", left, ly, rowWidth)
+					ly = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.presentation_video").string, left, ly, rowWidth)
 					val url = data.presentationVideoUrl
 					val urlWidth = font.width(url)
 					val hover = mouseX in left..(left + urlWidth) && mouseY in ly..(ly + font.lineHeight)
@@ -253,7 +255,7 @@ class EventDetailsScreen(private val parent: Screen, private val slug: String, i
 				}
 
 				if (!data.linkUrl.isNullOrBlank()) {
-					ly = drawSectionHeader(graphics, font, "More Info", left, ly, rowWidth)
+					ly = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.more_info").string, left, ly, rowWidth)
 					val url = data.linkUrl
 					val urlWidth = font.width(url)
 					val hover = mouseX in left..(left + urlWidth) && mouseY in ly..(ly + font.lineHeight)
@@ -264,7 +266,7 @@ class EventDetailsScreen(private val parent: Screen, private val slug: String, i
 				}
 
 				if (data.screenshotImages.isNotEmpty()) {
-					ly = drawSectionHeader(graphics, font, "Gallery", left, ly, rowWidth)
+					ly = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.gallery").string, left, ly, rowWidth)
 					val columns = 3
 					val gap = 6
 					val cellWidth = (rowWidth - gap * (columns - 1)) / columns

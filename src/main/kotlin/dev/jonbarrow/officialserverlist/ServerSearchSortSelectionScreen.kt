@@ -9,7 +9,7 @@ import net.minecraft.client.gui.components.ObjectSelectionList
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 
-class ServerSearchSortSelectionScreen(private val parent: Screen, private val filters: ServerSearchFilters, private val onChange: () -> Unit) : Screen(Component.literal("Sort By")) {
+class ServerSearchSortSelectionScreen(private val parent: Screen, private val filters: ServerSearchFilters, private val onChange: () -> Unit) : Screen(Component.translatable("officialserverlist.screen.sort_servers.title")) {
 	override fun init() {
 		super.init()
 
@@ -58,10 +58,10 @@ class ServerSearchSortSelectionScreen(private val parent: Screen, private val fi
 				val isCurrent = filters.sortBy == option
 				val prefix = if (isCurrent) "▶ " else "    "
 				val color = if (isCurrent) 0xFFFFD24A.toInt() else 0xFFFFFFFF.toInt()
-				graphics.text(font, prefix + option.displayName, x + 8, y + 6, color, true)
+				graphics.text(font, prefix + Component.translatable(option.displayNameKey).string, x + 8, y + 6, color, true)
 			}
 
-			override fun getNarration(): Component = Component.literal(option.displayName)
+			override fun getNarration(): Component = Component.translatable(option.displayNameKey)
 		}
 	}
 }

@@ -17,8 +17,7 @@ import net.minecraft.network.chat.Component
 import java.util.concurrent.CompletableFuture
 import kotlin.math.ceil
 
-class OfficialServerListScreen(private val parent: Screen) : Screen(Component.literal("Official Server List")) {
-
+class OfficialServerListScreen(private val parent: Screen) : Screen(Component.translatable("officialserverlist.screen.server_list.title")) {
 	companion object {
 		private const val PAGE_SIZE = 15
 
@@ -64,7 +63,7 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 		addRenderableWidget(list)
 
 		if (loading && currentPageData == null) {
-			val widget = LoadingDotsWidget(font, Component.literal("Searching"))
+			val widget = LoadingDotsWidget(font, Component.translatable("officialserverlist.loading", Component.translatable("officialserverlist.loading_target.servers")))
 			val listTop = 50
 			val listBottom = height - 70
 			val listMidY = (listTop + listBottom) / 2
@@ -73,7 +72,7 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 		}
 
 		addRenderableWidget(
-			Button.builder(Component.literal("Filter")) {
+			Button.builder(Component.translatable("officialserverlist.button.server_search_filters")) {
 				minecraft.setScreen(ServerSearchFilterScreen(this, filters) {
 					currentPageData = null
 					totalServersCount = null
@@ -83,7 +82,7 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 		)
 
 		addRenderableWidget(
-			Button.builder(Component.literal("Sort: ${filters.sortBy.displayName}")) {
+			Button.builder(Component.translatable("officialserverlist.button.server_search_sort", Component.translatable(filters.sortBy.displayNameKey))) {
 				minecraft.setScreen(ServerSearchSortSelectionScreen(this, filters) {
 					filters.pageNumber = 0
 					currentPageData = null
@@ -98,9 +97,9 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 		else ceil(serversCount.toDouble() / PAGE_SIZE).toInt()
 
 		pageText = if (serversCount == null) {
-			"${filters.pageNumber + 1} of ?"
+			Component.translatable("officialserverlist.label.page_indicator_unknown", filters.pageNumber + 1).string
 		} else {
-			"${filters.pageNumber + 1} of $totalPages"
+			Component.translatable("officialserverlist.label.page_indicator", filters.pageNumber + 1, totalPages).string
 		}
 		val pageTextWidth = font.width(pageText)
 
@@ -134,14 +133,14 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 		val totalTopRowWidth = buttonWidth * 2 + buttonSpacing
 		val topRowStartX = width / 2 - totalTopRowWidth / 2
 
-		addToListButton = Button.builder(Component.literal("Add To Server List")) {
+		addToListButton = Button.builder(Component.translatable("officialserverlist.button.add_to_server_list")) {
 			selectedServer?.let { server -> addToServerList(server) }
 		}.bounds(topRowStartX, topRowY, buttonWidth, 20).build().also {
 			it.active = false
 			addRenderableWidget(it)
 		}
 
-		showDetailsButton = Button.builder(Component.literal("Show Server Details")) {
+		showDetailsButton = Button.builder(Component.translatable("officialserverlist.button.show_server_details")) {
 			selectedServer?.let { server ->
 				minecraft.setScreen(ServerDetailsScreen(this, server.slug, null))
 			}
@@ -189,7 +188,7 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 					totalServersCount = response.count
 					errorMessage = null
 				}.onFailure { err ->
-					errorMessage = err.message ?: "Unknown error"
+					errorMessage = err.message ?: Component.translatable("officialserverlist.error.unknown").string
 				}
 				clearWidgets()
 				populateWidgets()
@@ -199,7 +198,10 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 
 	private fun addToServerList(server: BasicServerInfo) {
 		if (server.javaAddress.isNullOrBlank()) {
-			showToast("Failed to add server", "No Java address available")
+			showToast(
+				Component.translatable("officialserverlist.toast.add_failed.title"),
+				Component.translatable("officialserverlist.toast.add_failed.no_address")
+			)
 			return
 		}
 
@@ -218,7 +220,10 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 			}
 
 			if (alreadyPresent) {
-				showToast("Already added", "${server.name} is already in your server list")
+				showToast(
+					Component.translatable("officialserverlist.toast.already_added.title"),
+					Component.translatable("officialserverlist.toast.already_added.description", server.name)
+				)
 				return
 			}
 
@@ -227,14 +232,20 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 			serverList.add(data, false)
 			serverList.save()
 
-			showToast("Server added", "${server.name} added to your server list")
+			showToast(
+				Component.translatable("officialserverlist.toast.added.title"),
+				Component.translatable("officialserverlist.toast.added.description", server.name)
+			)
 		} catch (e: Exception) {
-			showToast("Failed to add server", e.message ?: "Unknown error")
+			showToast(
+				Component.translatable("officialserverlist.toast.add_failed.title"),
+				Component.literal(e.message ?: Component.translatable("officialserverlist.error.unknown").string)
+			)
 		}
 	}
 
-	private fun showToast(title: String, description: String) {
-		minecraft.toastManager.addToast(SystemToast.multiline(minecraft, SystemToast.SystemToastId.PERIODIC_NOTIFICATION, Component.literal(title), Component.literal(description)))
+	private fun showToast(title: Component, description: Component) {
+		minecraft.toastManager.addToast(SystemToast.multiline(minecraft, SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, description))
 	}
 
 	override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, delta: Float) {
@@ -249,7 +260,7 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 
 		totalServersCount?.let { count ->
 			val numberText = count.toString()
-			val labelText = " servers found"
+			val labelText = Component.translatable("officialserverlist.label.servers_found_suffix").string
 			val numberWidth = font.width(numberText)
 			val labelWidth = font.width(labelText)
 			val totalWidth = numberWidth + labelWidth
@@ -260,7 +271,7 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 		}
 
 		errorMessage?.let { err ->
-			val msg = "Error: $err"
+			val msg = Component.translatable("officialserverlist.label.error_prefix", err).string
 			val w = font.width(msg)
 			graphics.text(font, msg, width / 2 - w / 2, height / 2 - 30, 0xFFFF5555.toInt(), true)
 		}
@@ -288,7 +299,7 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 		inner class Entry(val server: BasicServerInfo) : ObjectSelectionList.Entry<Entry>() {
 			private val displayName = TextUtils.sanitize(server.name)
 			private val displayDescription = TextUtils.sanitize(server.shortDescription ?: "")
-			private val displayAddress = TextUtils.sanitize(server.javaAddress ?: "Unknown")
+			private val displayAddress = TextUtils.sanitize(server.javaAddress ?: Component.translatable("officialserverlist.label.unknown_address").string)
 
 			private val animationStart = System.currentTimeMillis()
 

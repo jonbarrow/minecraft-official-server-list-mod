@@ -1,29 +1,31 @@
 package dev.jonbarrow.officialserverlist
 
 class ServerSearchFilters {
-	enum class Edition(val displayName: String, val queryValue: String, val iconUrl: String) {
-		JAVA("Java", "Java", "https://findmcserver.com/assets/java.webp"),
-		CROSS_PLAY("Cross Play", "Cross Play", "https://findmcserver.com/assets/crossPlay.webp")
+	enum class Edition(val displayNameKey: String, val queryValue: String, val iconUrl: String) {
+		JAVA("officialserverlist.edition.java", "Java", "https://findmcserver.com/assets/java.webp"),
+		CROSS_PLAY("officialserverlist.edition.cross_play", "Cross Play", "https://findmcserver.com/assets/crossPlay.webp")
 	}
 
-	enum class SortOption(val displayName: String, val queryValue: String) {
-		DEFAULT("Default Sorting", "default"),
-		RANDOM("Random Sorting", "random"),
-		BADGES_VOTES("Badges + Votes", "badges"),
-		VOTES_DESC("Votes High to Low", "votes_desc"),
-		VOTES_ASC("Votes Low to High", "votes_asc"),
-		PLAYERS_DESC("Players High to Low", "players_desc"),
-		PLAYERS_ASC("Players Low to High", "players_asc"),
-		LAUNCHED_DESC("Launched New to Old", "launched_desc"),
-		LAUNCHED_ASC("Launched Old to New", "launched_asc"),
-		CREATED_DESC("Claimed New to Old", "created_desc"),
-		CREATED_ASC("Claimed Old to New", "created_asc"),
-		NAME_ASC("Name A to Z", "name_asc"),
-		NAME_DESC("Name Z to A", "name_desc"),
-		FAVORITES_DESC("Favorites High to Low", "favorites_desc"),
-		FAVORITES_ASC("Favorites Low to High", "favorites_asc")
+	enum class SortOption(val displayNameKey: String, val queryValue: String) {
+		DEFAULT("officialserverlist.sort.default", "default"),
+		RANDOM("officialserverlist.sort.random", "random"),
+		BADGES_VOTES("officialserverlist.sort.badges_votes", "badges"),
+		VOTES_DESC("officialserverlist.sort.votes_desc", "votes_desc"),
+		VOTES_ASC("officialserverlist.sort.votes_asc", "votes_asc"),
+		PLAYERS_DESC("officialserverlist.sort.players_desc", "players_desc"),
+		PLAYERS_ASC("officialserverlist.sort.players_asc", "players_asc"),
+		LAUNCHED_DESC("officialserverlist.sort.launched_desc", "launched_desc"),
+		LAUNCHED_ASC("officialserverlist.sort.launched_asc", "launched_asc"),
+		CREATED_DESC("officialserverlist.sort.created_desc", "created_desc"),
+		CREATED_ASC("officialserverlist.sort.created_asc", "created_asc"),
+		NAME_ASC("officialserverlist.sort.name_asc", "name_asc"),
+		NAME_DESC("officialserverlist.sort.name_desc", "name_desc"),
+		FAVORITES_DESC("officialserverlist.sort.favorites_desc", "favorites_desc"),
+		FAVORITES_ASC("officialserverlist.sort.favorites_asc", "favorites_asc")
 	}
 
+	// * Player count labels are numeric ranges, so they don't need translation.
+	// * Leaving them as plain display strings.
 	data class PlayerCountOption(val displayName: String, val queryValue: String) {
 		companion object {
 			val ALL = listOf(

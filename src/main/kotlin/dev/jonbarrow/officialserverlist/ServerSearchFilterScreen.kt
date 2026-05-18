@@ -15,7 +15,7 @@ import net.minecraft.client.renderer.RenderPipelines
 import net.minecraft.network.chat.Component
 import java.util.concurrent.CompletableFuture
 
-class ServerSearchFilterScreen(private val parent: Screen, private val filters: ServerSearchFilters, private val onApply: () -> Unit) : Screen(Component.literal("Filter Servers")) {
+class ServerSearchFilterScreen(private val parent: Screen, private val filters: ServerSearchFilters, private val onApply: () -> Unit) : Screen(Component.translatable("officialserverlist.screen.filter_servers.title")) {
 	companion object {
 		private const val DEFAULT_BADGE_COLOR = 0x68EDCC
 		private const val EDITION_COLOR = 0x6CC349
@@ -67,7 +67,7 @@ class ServerSearchFilterScreen(private val parent: Screen, private val filters: 
 		}
 
 		if (!loading) {
-			searchBox = EditBox(font, width / 2 - 150, 44, 300, 20, Component.literal("Search"))
+			searchBox = EditBox(font, width / 2 - 150, 44, 300, 20, Component.translatable("officialserverlist.text_box.search"))
 			searchBox.setMaxLength(100)
 			searchBox.value = filters.searchPhrase
 			searchBox.setResponder { filters.searchPhrase = it }
@@ -78,7 +78,7 @@ class ServerSearchFilterScreen(private val parent: Screen, private val filters: 
 			filterList = FilterListWidget(width, listHeight, listTop)
 			addRenderableWidget(filterList!!)
 		} else if (loading) {
-			val widget = LoadingDotsWidget(font, Component.literal("Loading filter options"))
+			val widget = LoadingDotsWidget(font, Component.translatable("officialserverlist.loading", Component.translatable("officialserverlist.loading_target.filter_options")))
 			widget.setPosition(width / 2 - widget.width / 2, height / 2 - 10)
 			addRenderableWidget(widget)
 		}
@@ -89,7 +89,7 @@ class ServerSearchFilterScreen(private val parent: Screen, private val filters: 
 		val startX = width / 2 - totalWidth / 2
 
 		addRenderableWidget(
-			Button.builder(Component.literal("Reset")) {
+			Button.builder(Component.translatable("officialserverlist.button.server_search_filters_apply")) {
 				filters.reset()
 				searchBox.value = ""
 				clearWidgets()
@@ -98,7 +98,7 @@ class ServerSearchFilterScreen(private val parent: Screen, private val filters: 
 		)
 
 		addRenderableWidget(
-			Button.builder(Component.literal("Apply")) {
+			Button.builder(Component.translatable("officialserverlist.button.server_search_filters_reset")) {
 				filters.pageNumber = 0
 				onApply()
 				minecraft.setScreen(parent)
@@ -200,50 +200,50 @@ class ServerSearchFilterScreen(private val parent: Screen, private val filters: 
 				val rowWidth = width - padding * 2
 				var y = top
 
-				y = drawSectionHeader(graphics, font, "Edition", left, y, rowWidth)
+				y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.edition").string, left, y, rowWidth)
 				y = drawEditionToggle(graphics, font, left, y, rowWidth)
 				y += 12
 
-				y = drawSectionHeader(graphics, font, "Official Experiences", left, y, rowWidth)
+				y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.official_experiences").string, left, y, rowWidth)
 				y = drawExperienceToggle(graphics, font, left, y, rowWidth)
 				y += 12
 
 				cachedBadges?.let { allBadges ->
 					val visible = allBadges.filter { it.badgeType != "GAMERSAFER" } + filters.gameSaferBadge
-					y = drawSectionHeader(graphics, font, "Badges", left, y, rowWidth)
+					y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.badges").string, left, y, rowWidth)
 					y = drawBadgeFilters(graphics, font, visible, filters.selectedBadgeIDs, left, y, rowWidth)
 					y += 12
 				}
 
 				cachedVersions?.let { versions ->
-					y = drawSectionHeader(graphics, font, "Versions", left, y, rowWidth)
+					y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.versions").string, left, y, rowWidth)
 					y = drawTextOptions(graphics, font, versions.map { it.id to it.name }, filters.selectedVersionIDs, left, y, rowWidth)
 					y += 12
 				}
 
 				cachedLanguages?.let { languages ->
-					y = drawSectionHeader(graphics, font, "Languages", left, y, rowWidth)
+					y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.languages").string, left, y, rowWidth)
 					y = drawTextOptions(graphics, font, languages.map { it.id to it.name }, filters.selectedLanguageIDs, left, y, rowWidth)
 					y += 12
 				}
 
 				cachedLocations?.let { locations ->
-					y = drawSectionHeader(graphics, font, "Locations", left, y, rowWidth)
+					y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.locations").string, left, y, rowWidth)
 					y = drawTextOptions(graphics, font, locations.map { it.id to it.name }, filters.selectedLocationIDs, left, y, rowWidth)
 					y += 12
 				}
 
 				cachedKeywords?.let { keywords ->
-					y = drawSectionHeader(graphics, font, "Keywords", left, y, rowWidth)
+					y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.keywords").string, left, y, rowWidth)
 					y = drawTextOptions(graphics, font, keywords.map { it.id to it.name }, filters.selectedKeywordIDs, left, y, rowWidth)
 					y += 12
 				}
 
-				y = drawSectionHeader(graphics, font, "Server Size", left, y, rowWidth)
+				y = drawSectionHeader(graphics, font, Component.translatable("officialserverlist.section.server_size").string, left, y, rowWidth)
 				drawTextOptions(graphics, font, ServerSearchFilters.PlayerCountOption.ALL.map { it.queryValue to it.displayName }, filters.selectedPlayerCounts, left, y, rowWidth)
 			}
 
-			override fun getNarration(): Component = Component.literal("Filter options")
+			override fun getNarration(): Component = Component.translatable("officialserverlist.screen.filter_servers.title")
 
 			private fun drawSectionHeader(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, title: String, x: Int, y: Int, width: Int): Int {
 				graphics.text(font, title, x, y, 0xFFFFFFFF.toInt(), true)
@@ -284,7 +284,8 @@ class ServerSearchFilterScreen(private val parent: Screen, private val filters: 
 
 					drawClickableOptionBackground(graphics, itemX, y, itemX + itemWidth, y + height, isSelected, EDITION_COLOR)
 
-					val labelWidth = font.width(edition.displayName)
+					var displayName = Component.translatable(edition.displayNameKey).string
+					val labelWidth = font.width(displayName)
 					val contentWidth = iconSize + iconLabelGap + labelWidth
 					val contentStart = itemX + (itemWidth - contentWidth) / 2
 
@@ -296,7 +297,7 @@ class ServerSearchFilterScreen(private val parent: Screen, private val filters: 
 						graphics.fill(contentStart, iconY, contentStart + iconSize, iconY + iconSize, 0xFF555555.toInt())
 					}
 
-					graphics.text(font, edition.displayName, contentStart + iconSize + iconLabelGap, y + (height - font.lineHeight) / 2, 0xFFFFFFFF.toInt(), true)
+					graphics.text(font, displayName, contentStart + iconSize + iconLabelGap, y + (height - font.lineHeight) / 2, 0xFFFFFFFF.toInt(), true)
 
 					visiblePills.add(ClickableOption(itemX, y, itemX + itemWidth, y + height) {
 						filters.edition = edition
@@ -316,7 +317,7 @@ class ServerSearchFilterScreen(private val parent: Screen, private val filters: 
 					graphics.fill(x + 3, y + 3, x + checkboxSize - 3, y + checkboxSize - 3, 0xFFFFFFFF.toInt())
 				}
 
-				graphics.text(font, "Show Only Official Minecraft Experiences", x + checkboxSize + 6, y + (checkboxSize - font.lineHeight) / 2 + 1, 0xFFDDDDDD.toInt(), false)
+				graphics.text(font, Component.translatable("officialserverlist.label.show_official_experiences_only").string, x + checkboxSize + 6, y + (checkboxSize - font.lineHeight) / 2 + 1, 0xFFDDDDDD.toInt(), false)
 
 				visiblePills.add(ClickableOption(x, y, x + width, y + checkboxSize) {
 					filters.hasExperienceID = !filters.hasExperienceID
