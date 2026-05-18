@@ -180,6 +180,13 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 						return true
 					}
 				}
+
+				for (card in list.visibleEventCards) {
+					if (mx in card.x1..card.x2 && my in card.y1..card.y2) {
+						minecraft.setScreen(EventDetailsScreen(this, card.event.slug, null))
+						return true
+					}
+				}
 			}
 		}
 
