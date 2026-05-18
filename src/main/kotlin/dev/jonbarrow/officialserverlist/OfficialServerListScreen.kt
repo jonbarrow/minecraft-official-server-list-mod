@@ -135,9 +135,7 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 		val topRowStartX = width / 2 - totalTopRowWidth / 2
 
 		addToListButton = Button.builder(Component.literal("Add To Server List")) {
-			selectedServer?.let {
-				// * Stub
-			}
+			selectedServer?.let { server -> addToServerList(server) }
 		}.bounds(topRowStartX, topRowY, buttonWidth, 20).build().also {
 			it.active = false
 			addRenderableWidget(it)
@@ -197,6 +195,46 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 				populateWidgets()
 			}
 		}
+	}
+
+	private fun addToServerList(server: BasicServerInfo) {
+		if (server.javaAddress.isNullOrBlank()) {
+			showToast("Failed to add server", "No Java address available")
+			return
+		}
+
+		val address = if (server.javaPort != null && server.javaPort != 25565) {
+			"$server.javaAddress:${server.javaPort}"
+		} else {
+			server.javaAddress
+		}
+
+		try {
+			val serverList = ServerList(minecraft)
+			serverList.load()
+
+			val alreadyPresent = (0 until serverList.size()).any { i ->
+				serverList[i].ip.equals(address, ignoreCase = true)
+			}
+
+			if (alreadyPresent) {
+				showToast("Already added", "${server.name} is already in your server list")
+				return
+			}
+
+			val sanitizedName = TextUtils.sanitize(server.name)
+			val data = ServerData(sanitizedName, address, ServerData.Type.OTHER)
+			serverList.add(data, false)
+			serverList.save()
+
+			showToast("Server added", "${server.name} added to your server list")
+		} catch (e: Exception) {
+			showToast("Failed to add server", e.message ?: "Unknown error")
+		}
+	}
+
+	private fun showToast(title: String, description: String) {
+		minecraft.toastManager.addToast(SystemToast.multiline(minecraft, SystemToast.SystemToastId.PERIODIC_NOTIFICATION, Component.literal(title), Component.literal(description)))
 	}
 
 	override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, delta: Float) {
