@@ -111,15 +111,32 @@ object ServerListApi {
 	}
 
 	// * Searches for servers based on certain criteria
-	fun searchServers(): Result<ServerSearchResults> {
+	fun searchServers(filters: ServerSearchFilters, pageSize: Int = 15): Result<ServerSearchResults> {
 		val params = mutableListOf<Pair<String, String>>().apply {
-			add("pageNumber" to "0")
-			add("pageSize" to "15")
-			add("sortBy" to "default")
-			add("gamerSaferStatus" to "undefined")
-			add("mojangStatus" to "undefined")
-			add("edition" to "Java")
-			add("size" to "")
+			add("pageNumber" to filters.pageNumber.toString())
+			add("pageSize" to pageSize.toString())
+			add("sortBy" to filters.sortBy.queryValue)
+			add("gamerSaferStatus" to "undefined") // * This seems to be a GameSaferStatus, but it seems to do nothing?
+			add("mojangStatus" to "undefined") // * This seems to be a MojangStatus, but it seems to do nothing?
+			add("edition" to filters.edition.queryValue)
+			add("size" to filters.playerCountQueryValue())
+
+			if (filters.hasExperienceID) {
+				add("hasExperienceId" to "true")
+			}
+
+			if (filters.selectedBadgeIDs.isNotEmpty()) {
+				add("badges" to filters.selectedBadgeIDs.joinToString(","))
+			}
+
+			val tags = filters.allTagIds()
+			if (tags.isNotEmpty()) {
+				add("tags" to tags.joinToString(","))
+			}
+
+			if (filters.searchPhrase.isNotBlank()) {
+				add("searchTerms" to filters.searchPhrase)
+			}
 		}
 
 		return request<ServerSearchResults>("$API_BASE/servers?" + buildQueryString(params))
