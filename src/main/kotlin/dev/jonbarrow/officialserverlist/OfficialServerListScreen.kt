@@ -128,6 +128,30 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 			addRenderableWidget(it)
 		}
 
+		val buttonWidth = 150
+		val buttonSpacing = 4
+		val topRowY = height - 52
+		val totalTopRowWidth = buttonWidth * 2 + buttonSpacing
+		val topRowStartX = width / 2 - totalTopRowWidth / 2
+
+		addToListButton = Button.builder(Component.literal("Add To Server List")) {
+			selectedServer?.let {
+				// * Stub
+			}
+		}.bounds(topRowStartX, topRowY, buttonWidth, 20).build().also {
+			it.active = false
+			addRenderableWidget(it)
+		}
+
+		showDetailsButton = Button.builder(Component.literal("Show Server Details")) {
+			selectedServer?.let { server ->
+				// * Stub
+			}
+		}.bounds(topRowStartX + buttonWidth + buttonSpacing, topRowY, buttonWidth, 20).build().also {
+			it.active = false
+			addRenderableWidget(it)
+		}
+
 		addRenderableWidget(
 			Button.builder(Component.translatable("gui.back")) {
 				returnToParent()
