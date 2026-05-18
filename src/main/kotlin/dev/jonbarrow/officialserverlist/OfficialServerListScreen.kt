@@ -55,7 +55,7 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 	}
 
 	private fun populateWidgets() {
-		val list = ServerListWidget(minecraft, width, height - 120, 50, 41) { selected ->
+		val list = ServerListWidget(minecraft, width, height - 110, 50, 41) { selected ->
 			selectedServer = selected
 			updateButtonStates()
 		}
