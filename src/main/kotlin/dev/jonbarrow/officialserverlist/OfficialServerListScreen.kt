@@ -72,6 +72,41 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 			addRenderableWidget(widget)
 		}
 
+		val serversCount = totalServersCount
+		val totalPages = if (serversCount == null || serversCount == 0) 1
+		else ceil(serversCount.toDouble() / PAGE_SIZE).toInt()
+
+		pageText = if (serversCount == null) {
+			"${filters.pageNumber + 1} of ?"
+		} else {
+			"${filters.pageNumber + 1} of $totalPages"
+		}
+		val pageTextWidth = font.width(pageText)
+
+		val nextButtonX = width - PAGE_RIGHT_MARGIN - PAGE_BUTTON_WIDTH
+		pageTextX = nextButtonX - PAGE_TEXT_PADDING - pageTextWidth
+		val prevButtonX = pageTextX - PAGE_TEXT_PADDING - PAGE_BUTTON_WIDTH
+
+		prevPageButton = Button.builder(Component.literal("<")) {
+			if (filters.pageNumber > 0 && !loading) {
+				filters.pageNumber--
+				goToPage()
+			}
+		}.bounds(prevButtonX, 22, PAGE_BUTTON_WIDTH, PAGE_BUTTON_HEIGHT).build().also {
+			it.active = filters.pageNumber > 0 && !loading
+			addRenderableWidget(it)
+		}
+
+		nextPageButton = Button.builder(Component.literal(">")) {
+			if (filters.pageNumber < totalPages - 1 && !loading) {
+				filters.pageNumber++
+				goToPage()
+			}
+		}.bounds(nextButtonX, 22, PAGE_BUTTON_WIDTH, PAGE_BUTTON_HEIGHT).build().also {
+			it.active = filters.pageNumber < totalPages - 1 && !loading
+			addRenderableWidget(it)
+		}
+
 		addRenderableWidget(
 			Button.builder(Component.translatable("gui.back")) {
 				returnToParent()
