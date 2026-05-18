@@ -21,6 +21,12 @@
 				"value": "dev.jonbarrow.officialserverlist.OfficialServerList",
 				"adapter": "kotlin"
 			}
+		],
+		"client": [
+			{
+				"value": "dev.jonbarrow.officialserverlist.OfficialServerListClient",
+				"adapter": "kotlin"
+			}
 		]
 	},
 	"depends": {
