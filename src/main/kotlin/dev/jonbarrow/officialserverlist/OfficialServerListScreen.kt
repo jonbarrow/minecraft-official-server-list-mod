@@ -72,6 +72,27 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 			addRenderableWidget(widget)
 		}
 
+		addRenderableWidget(
+			Button.builder(Component.literal("Filter")) {
+				minecraft.setScreen(ServerSearchFilterScreen(this, filters) {
+					currentPageData = null
+					totalServersCount = null
+					startFetch()
+				})
+			}.bounds(8, 1, 150, 20).build()
+		)
+
+		addRenderableWidget(
+			Button.builder(Component.literal("Sort: ${filters.sortBy.displayName}")) {
+				minecraft.setScreen(ServerSearchSortSelectionScreen(this, filters) {
+					filters.pageNumber = 0
+					currentPageData = null
+					totalServersCount = null
+					startFetch()
+				})
+			}.bounds(8, 22, 150, 20).build()
+		)
+
 		val serversCount = totalServersCount
 		val totalPages = if (serversCount == null || serversCount == 0) 1
 		else ceil(serversCount.toDouble() / PAGE_SIZE).toInt()
