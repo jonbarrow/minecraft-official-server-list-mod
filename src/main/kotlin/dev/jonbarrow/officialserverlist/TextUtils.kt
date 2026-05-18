@@ -34,4 +34,51 @@ object TextUtils {
 
 		return builder.toString()
 	}
+
+	fun eventTypeLabel(type: String?): String {
+		val eventType = type?.let { runCatching { EventType.valueOf(it.uppercase()) }.getOrNull() }
+
+		return when (eventType) {
+			EventType.COMMUNITY -> "Community"
+			EventType.TOURNAMENT -> "Tournament"
+			EventType.FEATURE -> "Feature"
+			EventType.STREAM -> "Stream"
+			EventType.IN_PERSON -> "In Person"
+			EventType.HOLIDAY -> "Holiday"
+			null -> type?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "Event"
+		}
+	}
+
+	fun joinTypeLabel(type: String?): String = when (EventJoinType.fromString(type)) {
+		EventJoinType.PUBLIC -> "Public"
+		EventJoinType.REGISTER -> "Register"
+		EventJoinType.INVITE_ONLY -> "Invite-Only"
+		null -> type?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "Unknown"
+	}
+
+	fun formatDate(iso: String?): String {
+		if (iso.isNullOrBlank()) return "Unknown"
+		return try {
+			val instant = Instant.parse(iso)
+			DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+				.withLocale(Locale.getDefault())
+				.withZone(ZoneId.systemDefault())
+				.format(instant)
+		} catch (e: Exception) {
+			iso
+		}
+	}
+
+	fun formatDateTime(iso: String?): String {
+		if (iso.isNullOrBlank()) return "Unknown"
+		return try {
+			val instant = Instant.parse(iso)
+			DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+				.withLocale(Locale.getDefault())
+				.withZone(ZoneId.systemDefault())
+				.format(instant)
+		} catch (e: Exception) {
+			iso
+		}
+	}
 }

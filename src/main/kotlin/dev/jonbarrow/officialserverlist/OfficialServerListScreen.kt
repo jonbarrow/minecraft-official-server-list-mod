@@ -143,7 +143,7 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 
 		showDetailsButton = Button.builder(Component.literal("Show Server Details")) {
 			selectedServer?.let { server ->
-				// * Stub
+				minecraft.setScreen(ServerDetailsScreen(this, server.slug, null))
 			}
 		}.bounds(topRowStartX + buttonWidth + buttonSpacing, topRowY, buttonWidth, 20).build().also {
 			it.active = false
