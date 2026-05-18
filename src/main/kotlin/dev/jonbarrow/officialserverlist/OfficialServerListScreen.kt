@@ -2,14 +2,17 @@
 
 package dev.jonbarrow.officialserverlist
 
+import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.LoadingDotsWidget
 import net.minecraft.client.gui.components.toasts.SystemToast
+import net.minecraft.client.gui.components.ObjectSelectionList
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen
 import net.minecraft.client.multiplayer.ServerData
 import net.minecraft.client.multiplayer.ServerList
+import net.minecraft.client.renderer.RenderPipelines
 import net.minecraft.network.chat.Component
 import java.util.concurrent.CompletableFuture
 import kotlin.math.ceil
@@ -52,8 +55,20 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 	}
 
 	private fun populateWidgets() {
+		val list = ServerListWidget(minecraft, width, height - 120, 50, 41) { selected ->
+			selectedServer = selected
+			updateButtonStates()
+		}
+
+		currentPageData?.let { list.setServers(it) }
+		addRenderableWidget(list)
+
 		if (loading && currentPageData == null) {
 			val widget = LoadingDotsWidget(font, Component.literal("Searching"))
+			val listTop = 50
+			val listBottom = height - 70
+			val listMidY = (listTop + listBottom) / 2
+			widget.setPosition(width / 2 - widget.width / 2, listMidY - 5)
 			addRenderableWidget(widget)
 		}
 
@@ -135,5 +150,101 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.li
 
 	override fun onClose() {
 		returnToParent()
+	}
+
+	private inner class ServerListWidget(minecraft: Minecraft, width: Int, height: Int, y: Int, itemHeight: Int, private val onSelectionChanged: (BasicServerInfo?) -> Unit) : ObjectSelectionList<ServerListWidget.Entry>(minecraft, width, height, y, itemHeight) {
+		fun setServers(servers: List<BasicServerInfo>) {
+			clearEntries()
+			servers.forEach { addEntry(Entry(it)) }
+		}
+
+		override fun getRowWidth(): Int = width - 20
+
+		override fun scrollBarX(): Int = width - 6
+
+		override fun setSelected(entry: Entry?) {
+			super.setSelected(entry)
+			onSelectionChanged(entry?.server)
+		}
+
+		inner class Entry(val server: BasicServerInfo) : ObjectSelectionList.Entry<Entry>() {
+			private val displayName = TextUtils.sanitize(server.name)
+			private val displayDescription = TextUtils.sanitize(server.shortDescription ?: "")
+			private val displayAddress = TextUtils.sanitize(server.javaAddress ?: "Unknown")
+
+			private val animationStart = System.currentTimeMillis()
+
+			override fun extractContent(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, hovered: Boolean, partialTick: Float) {
+				val font = Minecraft.getInstance().font
+				val padding = 4
+				val left = x + padding
+				val top = y + padding
+				val rowWidth = width - (padding * 2)
+
+				val icon = ImageLoader.get(server.iconImage.url)
+				if (icon != null) {
+					graphics.blit(RenderPipelines.GUI_TEXTURED, icon.id, left, top, 0f, 0f, 32, 32, 32, 32)
+				} else {
+					graphics.fill(left, top, left + 32, top + 32, 0xFF333333.toInt())
+				}
+
+				val textX = left + 40
+				val textColor = 0xFFFFFFFF.toInt()
+				val mutedColor = 0xFFAAAAAA.toInt()
+				val accentColor = 0xFF8FBCDB.toInt()
+				val statusColor = if (server.isOnline) 0xFF55FF55.toInt() else 0xFFFF5555.toInt()
+
+				graphics.text(font, displayName, textX, top + 2, textColor, true)
+
+				val descMaxWidth = rowWidth - 50
+				val descTop = top + 14
+				val descWidth = font.width(displayDescription)
+
+				if (descWidth <= descMaxWidth) {
+					graphics.text(font, displayDescription, textX, descTop, mutedColor, false)
+				} else {
+					drawPingPongText(graphics, displayDescription, textX, descTop, descMaxWidth, mutedColor)
+				}
+
+				graphics.text(font, displayAddress, textX, top + 24, accentColor, true)
+
+				val players = "${server.currentOnlinePlayers}/${server.currentMaxPlayers}"
+				val playersWidth = font.width(players)
+				graphics.text(font, players, left + rowWidth - playersWidth - 4, top + 24, statusColor, true)
+			}
+
+			private fun drawPingPongText(graphics: GuiGraphicsExtractor, text: String, x: Int, y: Int, maxWidth: Int, color: Int) {
+				val font = Minecraft.getInstance().font
+				val textWidth = font.width(text)
+				val scrollDistance = textWidth - maxWidth
+
+				val pauseDuration = 1.0
+				val pixelsPerSecond = 30.0
+				val scrollDuration = scrollDistance / pixelsPerSecond
+				val cycleDuration = (pauseDuration + scrollDuration) * 2
+
+				val elapsed = (System.currentTimeMillis() - animationStart) / 1000.0
+				val cyclePos = elapsed % cycleDuration
+
+				val offset: Int = when {
+					cyclePos < pauseDuration -> 0
+					cyclePos < pauseDuration + scrollDuration -> {
+						val progress = (cyclePos - pauseDuration) / scrollDuration
+						(progress * scrollDistance).toInt()
+					}
+					cyclePos < pauseDuration * 2 + scrollDuration -> scrollDistance
+					else -> {
+						val progress = (cyclePos - pauseDuration * 2 - scrollDuration) / scrollDuration
+						(scrollDistance * (1.0 - progress)).toInt()
+					}
+				}
+
+				graphics.enableScissor(x, y, x + maxWidth, y + font.lineHeight)
+				graphics.text(font, text, x - offset, y, color, false)
+				graphics.disableScissor()
+			}
+
+			override fun getNarration(): Component = Component.literal(displayName)
+		}
 	}
 }
