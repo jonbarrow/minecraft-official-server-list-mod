@@ -152,7 +152,7 @@ object ServerListApi {
 			add("joinType" to filters.joinTypeQueryValue())
 		}
 
-		return request<ServerEventsList>("$API_BASE/events")
+		return request<ServerEventsList>("$API_BASE/events?" + buildQueryString(params))
 	}
 
 	// * Gets a list of the badges a server can have.
