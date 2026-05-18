@@ -146,7 +146,12 @@ object ServerListApi {
 	}
 
 	// * Searches for all events based on certain criteria
-	fun searchEvents(): Result<ServerEventsList> {
+	fun searchEvents(filters: EventSearchFilters): Result<ServerEventsList> {
+		val params = mutableListOf<Pair<String, String>>().apply {
+			add("eventType" to filters.eventTypeQueryValue())
+			add("joinType" to filters.joinTypeQueryValue())
+		}
+
 		return request<ServerEventsList>("$API_BASE/events")
 	}
 
