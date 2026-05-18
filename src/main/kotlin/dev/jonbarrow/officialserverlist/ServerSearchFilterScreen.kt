@@ -89,7 +89,7 @@ class ServerSearchFilterScreen(private val parent: Screen, private val filters: 
 		val startX = width / 2 - totalWidth / 2
 
 		addRenderableWidget(
-			Button.builder(Component.translatable("officialserverlist.button.server_search_filters_apply")) {
+			Button.builder(Component.translatable("officialserverlist.button.server_search_filters_reset")) {
 				filters.reset()
 				searchBox.value = ""
 				clearWidgets()
@@ -98,7 +98,7 @@ class ServerSearchFilterScreen(private val parent: Screen, private val filters: 
 		)
 
 		addRenderableWidget(
-			Button.builder(Component.translatable("officialserverlist.button.server_search_filters_reset")) {
+			Button.builder(Component.translatable("officialserverlist.button.server_search_filters_apply")) {
 				filters.pageNumber = 0
 				onApply()
 				minecraft.setScreen(parent)
