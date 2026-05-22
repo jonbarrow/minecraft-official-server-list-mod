@@ -90,6 +90,8 @@
   "officialserverlist.button.server_search_filters_reset": "Reset",
   "officialserverlist.button.add_to_server_list": "Add To Server List",
   "officialserverlist.button.show_server_details": "Show Server Details",
+  "officialserverlist.button.account": "Account",
+  "officialserverlist.button.login": "Login",
 
   "officialserverlist.edition.java": "Java",
   "officialserverlist.edition.cross_play": "Cross Play",

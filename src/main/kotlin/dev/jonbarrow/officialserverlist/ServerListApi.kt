@@ -18,7 +18,7 @@ import java.time.Duration
 // * - [ ] /api/auth/getSession
 // * - [ ] /api/auth/logout
 // * - [ ] /api/auth/minecraft-login/[code]
-// * - [ ] /api/auth/[hash]
+// * - [x] /api/auth/[hash]
 // * - [x] /api/badges
 // * - [ ] /api/contact
 // * - [x] /api/events
@@ -85,6 +85,9 @@ object ServerListApi {
 	private const val IP_INFO_API = "https://ipinfo.io/json" // * This is used for the voting endpoint. This is the API the official website uses, so use it here too for consistency
 	private const val API_BASE = "https://findmcserver.com/api"
 	private const val USER_AGENT = "OfficialServerListMod/1.0 (Fabric Minecraft Mod)" // * Let's be nice and tell them who we are. Don't resort to spoofing just yet
+	private const val SECURITY_KEY = "Mbh6Ku8kVfrvv1DVWekX" // * This is a static key the official client uses to both AES encrypt certain responses and sign client-created JWTs
+
+	var loginSession: LoginSessionData? = null
 
 	// * Used by the official website for analytics tracking.
 	// * Not used here, but implemented for documentation purposes
@@ -103,6 +106,13 @@ object ServerListApi {
 		)
 
 		return requestPost<TrackingEventRequest, Unit>("$API_BASE/tracking", payload)
+	}
+
+	fun loginWithHash(hash: String) {
+		val response = request<LoginSessionPayload>("$API_BASE/auth/$hash").getOrNull() ?: return
+		val decrypted = CryptoUtil.decryptCryptoJS(response.payload, SECURITY_KEY)
+
+		loginSession = json.decodeFromString<LoginSessionData>(decrypted)
 	}
 
 	// * Used to display the servers on the main https://findmcserver.com home page, before you search

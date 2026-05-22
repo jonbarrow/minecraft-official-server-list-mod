@@ -127,6 +127,12 @@ class OfficialServerListScreen(private val parent: Screen) : Screen(Component.tr
 			addRenderableWidget(it)
 		}
 
+		addRenderableWidget(
+			Button.builder(Component.translatable("officialserverlist.button.account")) {
+				minecraft.setScreen(FMCSAccountScreen(this))
+			}.bounds(nextButtonX - (90 - PAGE_BUTTON_WIDTH), 1, 90, 20).build()
+		)
+
 		val buttonWidth = 150
 		val buttonSpacing = 4
 		val topRowY = height - 52

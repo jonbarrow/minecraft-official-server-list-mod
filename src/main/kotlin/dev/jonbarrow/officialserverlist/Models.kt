@@ -149,6 +149,33 @@ enum class MojangStatus {
 }
 
 @Serializable
+enum class RolesType {
+	SITE_ADMIN,
+	SITE_MODERATOR,
+	TEAM_GS_MEMBER,
+	TEAM_MJ_MEMBER,
+	SERVER_OPERATOR,
+	SITE_USER
+}
+
+@Serializable
+data class LoginSessionData(
+	val email: String,
+	val userId: String,
+	val platformUserId: String?,
+	val platformUserName: String?,
+	val platformImg: String?,
+	val rolesType: RolesType,
+	val newPlayer: Boolean?,
+	val userIdEnviado: String?
+)
+
+@Serializable
+data class LoginSessionPayload(
+	val payload: String
+)
+
+@Serializable
 data class TrackingEventRequest(
 	val event: TrackingEventType,
 	val server: String?,
