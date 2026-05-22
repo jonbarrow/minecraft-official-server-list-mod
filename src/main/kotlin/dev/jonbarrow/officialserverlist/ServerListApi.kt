@@ -8,6 +8,8 @@ import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.net.CookieManager
+import java.net.CookiePolicy
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 
@@ -74,13 +76,16 @@ import java.time.Duration
 // * - [ ] /api/verify-email
 
 object ServerListApi {
-	private val client: HttpClient = HttpClient.newBuilder().build()
 	private val json = Json {
 		ignoreUnknownKeys = true
 		coerceInputValues = true
 		explicitNulls = false
 	}
 	private var cachedIPAddress: String? = null // * A few API endpoints consume this, so cache it to not spam the API
+	private val cookieManager = CookieManager().apply {
+		setCookiePolicy(CookiePolicy.ACCEPT_ALL) // TODO - At some point the login cookies need to be stored for reuse so users don't need to login every launch
+	}
+	private val client: HttpClient = HttpClient.newBuilder().cookieHandler(cookieManager).build()
 
 	private const val IP_INFO_API = "https://ipinfo.io/json" // * This is used for the voting endpoint. This is the API the official website uses, so use it here too for consistency
 	private const val API_BASE = "https://findmcserver.com/api"
