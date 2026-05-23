@@ -191,6 +191,12 @@ object ServerListApi {
 		return request<ServerEventsList>("$API_BASE/events?" + buildQueryString(params))
 	}
 
+	// * Gets a list of upcoming events registered to users the target user has
+	// * has listed in their favorite servers
+	fun fetchUpcomingEvents(userID: String): Result<List<BasicEventInfo>> {
+		return request<List<BasicEventInfo>>("$API_BASE/events/upcoming/$userID/upcomingEvents")
+	}
+
 	// * Gets a list of the badges a server can have.
 	// * Not all of these are shown in the official UI for some reason
 	fun fetchBadges(): Result<List<BadgeListBadge>> {

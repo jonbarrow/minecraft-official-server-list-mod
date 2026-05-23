@@ -4,6 +4,7 @@
   "officialserverlist.loading_target.server_details": "server details",
   "officialserverlist.loading_target.servers": "servers",
   "officialserverlist.loading_target.event": "event",
+  "officialserverlist.loading_target.account_data": "account data",
 
   "officialserverlist.screen.server_list.title": "Official Server List",
   "officialserverlist.screen.filter_servers.title": "Filter Servers",

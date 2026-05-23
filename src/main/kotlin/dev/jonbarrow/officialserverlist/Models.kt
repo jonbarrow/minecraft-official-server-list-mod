@@ -125,6 +125,13 @@ enum class EventJoinType {
 }
 
 @Serializable
+enum class EventImageType {
+	ICON,
+	BACKGROUND,
+	FEATURE
+}
+
+@Serializable
 enum class GameSaferStatus {
 	CREATED,
 	VERIFIED_EMAIL,
@@ -374,7 +381,7 @@ data class EventImage(
 	val url: String,
 	val altText: String?,
 	val title: String?,
-	val imageType: String
+	val imageType: EventImageType
 )
 
 @Serializable
@@ -450,6 +457,20 @@ data class EventDiscoveryResult(
 	val highlighted: List<Unknown>,
 	val live: List<Unknown>,
 	val upcoming: List<Unknown>
+)
+
+@Serializable
+data class BasicEventInfo(
+	val id: String,
+	val slug: String,
+	val title: String,
+	val startingDate: String,
+	val joinType: EventJoinType,
+	val eventJoinedCount: Int,
+	val eventType: EventType,
+	val backgroundImage: EventImageType, // TODO - What? The only event I can find has this set to the string "BACKGROUND", not a EventImage object?
+	val serverName: String,
+	val serverSlug: String
 )
 
 @Serializable
