@@ -128,7 +128,8 @@ enum class EventJoinType {
 enum class EventImageType {
 	ICON,
 	BACKGROUND,
-	FEATURE
+	FEATURE,
+	SCREENSHOT
 }
 
 @Serializable

@@ -16,6 +16,7 @@ import net.minecraft.network.chat.Component
 class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translatable("officialserverlist.screen.server_list.title")) {
 	companion object {
 		private const val DEFAULT_USER_IMAGE = "https://findmcserver.com/assets/user_default_img.webp"
+		private const val UPCOMING_EVENT_ICON = "https://findmcserver.com/assets/calendar-icon.webp"
 
 		private const val SIDE_PADDING = 12
 		private const val HEADER_TOP = 8
@@ -29,7 +30,7 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 		private const val BOTTOM_BAR_HEIGHT = 40
 	}
 
-	private enum class Tab(val labelKey: String) {
+	enum class Tab(val labelKey: String) {
 		FAVORITE_SERVERS("officialserverlist.tab.favorite_servers"),
 		YOUR_SERVERS("officialserverlist.tab.your_servers"),
 		FAVORITE_EVENTS("officialserverlist.tab.favorite_events"),
@@ -37,6 +38,7 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 	}
 
 	private var upcomingEvents: List<BasicEventInfo>? = null
+	private var favoriteEvents: List<ServerEvent>? = null
 	private var loading: Boolean = false
 	private var activeTab: Tab = Tab.FAVORITE_SERVERS
 	private var sectionList: SectionListWidget? = null
@@ -48,7 +50,7 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 		// * servers/favorite/list?userId
 		// * events/upcoming/{userId}/upcomingEvents
 		// * events/favorite/list?userId
-		if (ServerListApi.loginSession != null && upcomingEvents == null) {
+		if (ServerListApi.loginSession != null && (upcomingEvents == null || favoriteEvents == null)) {
 			startFetch()
 		}
 
@@ -61,12 +63,15 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 		CompletableFuture.supplyAsync {
 			val loginSession = ServerListApi.loginSession!!
 			val upcomingEvents = ServerListApi.fetchUpcomingEvents(loginSession.userId).getOrNull()
+			val favoriteEvents = ServerListApi.fetchFavoritedEvents(loginSession.userId).getOrNull()
 
-			listOf(upcomingEvents)
+			listOf(upcomingEvents, favoriteEvents)
 		}.thenAccept { results ->
 			minecraft.execute {
 				@Suppress("UNCHECKED_CAST")
 				upcomingEvents = results[0] as List<BasicEventInfo>
+				@Suppress("UNCHECKED_CAST")
+				favoriteEvents = results[1] as List<ServerEvent>
 				loading = false
 				clearWidgets()
 				init(width, height)
@@ -221,7 +226,7 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 		returnToParent()
 	}
 
-	private inner class SectionListWidget(width: Int, height: Int, y: Int, private val tab: Tab) : ObjectSelectionList<SectionListWidget.SectionEntry>(minecraft, width, height, y, 18) {
+	private inner class SectionListWidget(width: Int, height: Int, y: Int, private val tab: Tab) : ObjectSelectionList<SectionListWidget.SectionEntry>(minecraft, width, height, y, computeHeight(tab, upcomingEvents, favoriteEvents)) {
 		init {
 			addEntry(SectionEntry())
 		}
@@ -241,12 +246,30 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 				val rowWidth = width - padding * 2
 
 				when (tab) {
+					Tab.FAVORITE_EVENTS -> renderFavoriteEventsTab(graphics, font, left, top, rowWidth)
 					Tab.UPCOMING_EVENTS -> renderUpcomingEventsTab(graphics, font, left, top, rowWidth)
 					else -> Unit
 				}
 			}
 
 			override fun getNarration(): Component = Component.literal("")
+
+			private fun renderFavoriteEventsTab(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, left: Int, top: Int, rowWidth: Int) {
+				var y = top
+
+				if (favoriteEvents!!.isEmpty()) {
+					graphics.text(font, Component.translatable("officialserverlist.empty.no_events").string, left, y, 0xFFAAAAAA.toInt(), false)
+					return
+				}
+
+				val cardHeight = 60
+				val cardGap = 8
+
+				for (event in favoriteEvents!!) {
+					drawFavoritedEventCard(graphics, font, event, left, y, rowWidth, cardHeight)
+					y += cardHeight + cardGap
+				}
+			}
 
 			private fun renderUpcomingEventsTab(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, left: Int, top: Int, rowWidth: Int) {
 				var y = top
@@ -260,18 +283,75 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 				val cardGap = 8
 
 				for (event in upcomingEvents!!) {
-					drawEventCard(graphics, font, event, left, y, rowWidth, cardHeight)
+					drawUpcomingEventCard(graphics, font, event, left, y, rowWidth, cardHeight)
 					y += cardHeight + cardGap
 				}
 			}
 
-			private fun drawEventCard(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, event: BasicEventInfo, left: Int, top: Int, rowWidth: Int, cardHeight: Int) {
+			// TODO - This is almost identcal drawUpcomingEventCard, merge the two?
+			private fun drawFavoritedEventCard(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, event: ServerEvent, left: Int, top: Int, rowWidth: Int, cardHeight: Int) {
+				val bg = ImageLoader.get(event.backgroundImage.url)
+				if (bg != null) {
+					graphics.blit(RenderPipelines.GUI_TEXTURED, bg.id, left, top, 0f, 0f, rowWidth, cardHeight, rowWidth, cardHeight)
+					graphics.fill(left, top, left + rowWidth, top + cardHeight, 0xAA000000.toInt())
+				} else {
+					graphics.fill(left, top, left + rowWidth, top + cardHeight, 0xFF1A1A1A.toInt())
+				}
+
+				val iconSize = 48
+				val iconX = left + 8
+				val iconY = top + (cardHeight - iconSize) / 2
+				val icon = ImageLoader.get(event.iconImage.url)
+				if (icon != null) {
+					graphics.blit(RenderPipelines.GUI_TEXTURED, icon.id, iconX, iconY, 0f, 0f, iconSize, iconSize, iconSize, iconSize)
+				} else {
+					graphics.fill(iconX, iconY, iconX + iconSize, iconY + iconSize, 0xFF333333.toInt())
+				}
+
+				val textX = iconX + iconSize + 8
+				val textRight = left + rowWidth - 8
+				val textWidth = textRight - textX
+				var ly = iconY
+
+				val title = truncateToWidth(font, TextUtils.sanitize(event.title), textWidth)
+				graphics.text(font, title, textX, ly, 0xFFFFFFFF.toInt(), true)
+				ly += font.lineHeight + 2
+
+				var pillX = textX
+				val typeLabel = TextUtils.eventTypeLabel(event.eventType.name)
+				val typeWidth = font.width(typeLabel) + 8
+				graphics.fill(pillX, ly, pillX + typeWidth, ly + font.lineHeight + 2, 0xFF55AA55.toInt())
+				graphics.text(font, typeLabel, pillX + 4, ly + 2, 0xFFFFFFFF.toInt(), false)
+				pillX += typeWidth + 4
+
+				val joinLabel = TextUtils.joinTypeLabel(event.joinType.name)
+				val joinWidth = font.width(joinLabel) + 8
+				val joinBg = when (event.joinType) {
+					EventJoinType.PUBLIC -> 0xFF3A6FA0.toInt()
+					EventJoinType.REGISTER -> 0xFFB08030.toInt()
+					EventJoinType.INVITE_ONLY -> 0xFFA03030.toInt()
+				}
+				graphics.fill(pillX, ly, pillX + joinWidth, ly + font.lineHeight + 2, joinBg)
+				graphics.text(font, joinLabel, pillX + 4, ly + 2, 0xFFFFFFFF.toInt(), false)
+				ly += font.lineHeight + 6
+
+				val startStr = TextUtils.formatDateTime(event.startingDate)
+				val endStr = TextUtils.formatDateTime(event.endingDate)
+				val dateLine = "$startStr → $endStr"
+				val dateTruncated = truncateToWidth(font, dateLine, textWidth)
+				graphics.text(font, dateTruncated, textX, ly, 0xFF8FBCDB.toInt(), false)
+				ly += font.lineHeight + 2
+
+				graphics.text(font, Component.translatable("officialserverlist.label.joined_count", event.eventJoinedCount).string, textX, ly, 0xFFAAAAAA.toInt(), false)
+			}
+
+			private fun drawUpcomingEventCard(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, event: BasicEventInfo, left: Int, top: Int, rowWidth: Int, cardHeight: Int) {
 				graphics.fill(left, top, left + rowWidth, top + cardHeight, 0xFF1A1A1A.toInt())
 
 				val iconSize = 48
 				val iconX = left + 8
 				val iconY = top + (cardHeight - iconSize) / 2
-				val icon = ImageLoader.get("https://findmcserver.com/assets/calendar-icon.webp")
+				val icon = ImageLoader.get(UPCOMING_EVENT_ICON)
 				if (icon != null) {
 					graphics.blit(RenderPipelines.GUI_TEXTURED, icon.id, iconX, iconY, 0f, 0f, iconSize, iconSize, iconSize, iconSize)
 				} else {
@@ -328,4 +408,34 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 			}
 		}
 	}
+}
+
+private fun computeHeight(tab: FMCSAccountScreen.Tab, upcomingEvents: List<BasicEventInfo>?, favoriteEvents: List<ServerEvent>?): Int {
+	val font = Minecraft.getInstance().font
+	val padding = 8
+	var height = padding * 2
+
+	when (tab) {
+		FMCSAccountScreen.Tab.FAVORITE_EVENTS -> {
+			if (favoriteEvents.isNullOrEmpty()) {
+				height += font.lineHeight
+			} else {
+				val cardHeight = 60
+				val cardGap = 8
+				height += favoriteEvents.size * cardHeight + (favoriteEvents.size - 1) * cardGap
+			}
+		}
+		FMCSAccountScreen.Tab.UPCOMING_EVENTS -> {
+			if (upcomingEvents.isNullOrEmpty()) {
+				height += font.lineHeight
+			} else {
+				val cardHeight = 60
+				val cardGap = 8
+				height += upcomingEvents.size * cardHeight + (upcomingEvents.size - 1) * cardGap
+			}
+		}
+		else -> height += font.lineHeight
+	}
+
+	return maxOf(height, 100)
 }

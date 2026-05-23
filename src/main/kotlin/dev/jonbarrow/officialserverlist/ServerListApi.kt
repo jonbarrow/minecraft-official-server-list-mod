@@ -197,6 +197,15 @@ object ServerListApi {
 		return request<List<BasicEventInfo>>("$API_BASE/events/upcoming/$userID/upcomingEvents")
 	}
 
+	// * Gets a list of the users favorited events
+	fun fetchFavoritedEvents(userID: String): Result<List<ServerEvent>> {
+		val params = mutableListOf<Pair<String, String>>().apply {
+			add("userId" to userID)
+		}
+
+		return request<List<ServerEvent>>("$API_BASE/events/favorite/list?" + buildQueryString(params))
+	}
+
 	// * Gets a list of the badges a server can have.
 	// * Not all of these are shown in the official UI for some reason
 	fun fetchBadges(): Result<List<BadgeListBadge>> {
