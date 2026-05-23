@@ -17,6 +17,10 @@
   "officialserverlist.tab.badges": "Badges",
   "officialserverlist.tab.events": "Events",
   "officialserverlist.tab.essentials": "Essentials",
+  "officialserverlist.tab.favorite_servers": "Favorite Servers",
+  "officialserverlist.tab.your_servers": "Your Servers",
+  "officialserverlist.tab.favorite_events": "Favorite Events",
+  "officialserverlist.tab.upcoming_events": "Upcoming Events",
 
   "officialserverlist.section.edition": "Edition",
   "officialserverlist.section.official_experiences": "Official Experiences",
@@ -64,6 +68,7 @@
   "officialserverlist.label.player_joined": "%d player joined",
   "officialserverlist.label.players_joined": "%d players joined",
   "officialserverlist.label.full_text": "Full text: ",
+  "officialserverlist.label.logged_in_as": "Logged in as %s",
 
   "officialserverlist.error.unknown": "Unknown error",
 
@@ -92,6 +97,11 @@
   "officialserverlist.button.show_server_details": "Show Server Details",
   "officialserverlist.button.account": "Account",
   "officialserverlist.button.login": "Login",
+  "officialserverlist.button.link_minecraft_account": "Link Minecraft",
+  "officialserverlist.button.your_servers": "Your Servers",
+  "officialserverlist.button.preferences": "Preferences",
+  "officialserverlist.button.logout": "Logout",
+  "officialserverlist.button.delete_account": "Delete Account",
 
   "officialserverlist.edition.java": "Java",
   "officialserverlist.edition.cross_play": "Cross Play",
