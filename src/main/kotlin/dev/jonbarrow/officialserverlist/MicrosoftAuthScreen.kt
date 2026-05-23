@@ -1,5 +1,6 @@
 package dev.jonbarrow.officialserverlist
 
+import java.net.URI
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.FilterMode
 import net.dimaskama.mcef.api.MCEFApi
@@ -19,10 +20,13 @@ import org.cef.browser.CefFrame
 import org.cef.handler.CefDisplayHandlerAdapter
 import org.lwjgl.glfw.GLFW;
 
-class MicrosoftAuthScreen(private val parent: Screen, private val onResult: (String?) -> Unit) : Screen(Component.translatable("officialserverlist.screen.auth.title")) {
+class MicrosoftAuthScreen(private val parent: Screen, private val authType: AuthType, private val onResult: (String?) -> Unit) : Screen(Component.translatable("officialserverlist.screen.auth.title")) {
 	companion object {
 		private const val LOGIN_PAGE = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?client_id=1e25a03a-e733-4f0a-a639-0cd9fc8f6224&scope=user.read&response_type=code&prompt=login&approval_prompt=auto&redirect_uri=https://1yrsextl7j.execute-api.us-east-1.amazonaws.com/prod/auth/microsoft/connection"
 		private const val LOGIN_CALLBACK_PREFIX = "https://findmcserver.com/auth/"
+
+		private const val LINK_MINECRAFT_PAGE = "https://login.live.com/oauth20_authorize.srf?client_id=1e25a03a-e733-4f0a-a639-0cd9fc8f6224&response_type=code&prompt=login&approval_prompt=auto&scope=Xboxlive.signin&redirect_uri=https://findmcserver.com/auth/minecraft-login"
+		private const val LINK_MINECRAFT_CALLBACK_PREFIX = "https://findmcserver.com/auth/minecraft-login"
 	}
 
 	private var browser: MCEFBrowser? = null
@@ -32,9 +36,17 @@ class MicrosoftAuthScreen(private val parent: Screen, private val onResult: (Str
 	private var scaleX: Double = 1.0
 	private var scaleY: Double = 1.0
 
+	enum class AuthType {
+		LOGIN,
+		LINK_MINECRAFT
+	}
+
 	override fun init() {
 		if (browser == null) {
-			browser = MCEFApi.getInstance().createBrowser(LOGIN_PAGE, false)
+			browser = when (authType) {
+				AuthType.LOGIN ->  MCEFApi.getInstance().createBrowser(LOGIN_PAGE, false)
+				AuthType.LINK_MINECRAFT ->  MCEFApi.getInstance().createBrowser(LINK_MINECRAFT_PAGE, false)
+			}
 		}
 
 		// * Have to scale the UI otherwise it gets really zoomed in
@@ -64,7 +76,14 @@ class MicrosoftAuthScreen(private val parent: Screen, private val onResult: (Str
 	private fun checkURL() {
 		if (captured) return
 		val url = browser?.cefBrowser?.url ?: return
-		if (url.startsWith(LOGIN_CALLBACK_PREFIX)) {
+
+		// * Check this first since both endpoints have a common prefix
+		if (!captured && url.startsWith(LINK_MINECRAFT_CALLBACK_PREFIX)) {
+			captured = true
+			finish(extractCode(url))
+		}
+
+		if (!captured && url.startsWith(LOGIN_CALLBACK_PREFIX)) {
 			captured = true
 			finish(extractHash(url))
 		}
@@ -75,6 +94,15 @@ class MicrosoftAuthScreen(private val parent: Screen, private val onResult: (Str
 				.substringBefore('?') // * I don't think this should be here, but just in case
 				.substringBefore('#') // * I don't think this should be here, but just in case
 				.trim('/')
+	}
+
+	private fun extractCode(url: String): String? {
+		val queryParams = URI(url).query.split("&").associate { pair ->
+			val (key, value) = pair.split("=", limit=2)
+			key to value
+		}
+
+		return queryParams["code"]
 	}
 
 	private fun finish(hash: String?) {

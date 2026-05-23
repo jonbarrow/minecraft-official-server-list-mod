@@ -2,6 +2,7 @@
 
 package dev.jonbarrow.officialserverlist
 
+import java.util.Base64
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.Button
@@ -54,7 +55,7 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 		if (loginSession == null) {
 			addRenderableWidget(
 				Button.builder(Component.translatable("officialserverlist.button.login")) {
-					minecraft.setScreen(MicrosoftAuthScreen(this) { hash ->
+					minecraft.setScreen(MicrosoftAuthScreen(this, MicrosoftAuthScreen.AuthType.LOGIN) { hash ->
 						minecraft.execute {
 							if (hash != null) {
 								ServerListApi.loginWithHash(hash)
@@ -100,7 +101,15 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 		if (loginSession.platformUserId == null || loginSession.platformUserName == null) {
 			addRenderableWidget(
 				Button.builder(Component.translatable("officialserverlist.button.link_minecraft_account")) {
-					// TODO - stub
+					minecraft.setScreen(MicrosoftAuthScreen(this, MicrosoftAuthScreen.AuthType.LINK_MINECRAFT) { code ->
+						minecraft.execute {
+							if (code != null) {
+								ServerListApi.linkMinecraftAccount(code)
+								clearWidgets()
+								populateWidgets()
+							}
+						}
+					})
 				}.bounds(deleteX, topRowY, HEADER_BUTTON_WIDTH, HEADER_BUTTON_HEIGHT).build()
 			)
 		}
@@ -148,7 +157,12 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 		val iconX = left
 		val iconY = y + 4
 
-		val userImage = ImageLoader.get(DEFAULT_USER_IMAGE)
+		val userImage = if (loginSession.platformImg != null) {
+			ImageLoader.fromBytes(loginSession.platformImg, Base64.getDecoder().decode(loginSession.platformImg))
+		} else {
+			ImageLoader.get(DEFAULT_USER_IMAGE)
+		}
+
 		if (userImage != null) {
 			graphics.blit(RenderPipelines.GUI_TEXTURED, userImage.id, iconX, iconY, 0f, 0f, iconSize, iconSize, iconSize, iconSize)
 		} else {
@@ -159,8 +173,9 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 		val bottomRowY = HEADER_TOP + HEADER_HEIGHT - HEADER_BUTTON_HEIGHT - 4
 		val topRowY = bottomRowY - HEADER_BUTTON_HEIGHT - HEADER_BUTTON_GAP
 		val textY = topRowY + (HEADER_BUTTON_HEIGHT - font.lineHeight) / 2
+		val displayName = if (loginSession.platformUserName != null) loginSession.platformUserName else loginSession.email
 
-		graphics.text(font, Component.translatable("officialserverlist.label.logged_in_as", loginSession.email).string, textX, textY, 0xFFFFFFFF.toInt(), true)
+		graphics.text(font, Component.translatable("officialserverlist.label.logged_in_as", displayName).string, textX, textY, 0xFFFFFFFF.toInt(), true)
 	}
 
 	override fun onClose() {

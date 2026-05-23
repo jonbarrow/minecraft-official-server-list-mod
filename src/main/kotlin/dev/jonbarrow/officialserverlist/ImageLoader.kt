@@ -39,6 +39,20 @@ object ImageLoader {
 		return null
 	}
 
+	fun fromBytes(key: String, bytes: ByteArray): ImageTexture? {
+		cache[key]?.let { return it }
+
+		val pngBytes = bytesToPNGBytes(bytes) ?: return null
+
+		if (Minecraft.getInstance().isSameThread) {
+			registerTexture(key, pngBytes)
+		} else {
+			Minecraft.getInstance().execute { registerTexture(key, pngBytes) }
+		}
+
+		return cache[key]
+	}
+
 	private fun loadAsync(url: String) {
 		CompletableFuture.supplyAsync<ByteArray?> {
 			try {
@@ -49,14 +63,9 @@ object ImageLoader {
 					return@supplyAsync null
 				}
 
-				val image = ImageIO.read(ByteArrayInputStream(response.body()))
-				if (image == null) {
+				val pngBytes = bytesToPNGBytes(response.body())
+				if (pngBytes == null) {
 					return@supplyAsync null
-				}
-
-				val pngBytes = ByteArrayOutputStream().use { out ->
-					ImageIO.write(image, "png", out)
-					out.toByteArray()
 				}
 
 				pngBytes
@@ -66,16 +75,32 @@ object ImageLoader {
 		}.thenAccept { bytes ->
 			if (bytes == null) return@thenAccept
 			Minecraft.getInstance().execute {
-				try {
-					val image = NativeImage.read(ByteArrayInputStream(bytes))
-					val id = Identifier.fromNamespaceAndPath("official-server-list", "image/${url.hashCode().toUInt()}")
-					val texture = DynamicTexture(Supplier { "official-server-list-image-$id" }, image)
-
-					Minecraft.getInstance().textureManager.register(id, texture)
-					textureRefs[url] = texture
-					cache[url] = ImageTexture(id, image.width, image.height)
-				} catch (e: Exception) {}
+				registerTexture(url, bytes)
 			}
 		}
+	}
+
+	private fun bytesToPNGBytes(bytes: ByteArray): ByteArray? {
+		val image = ImageIO.read(ByteArrayInputStream(bytes))
+		if (image == null) {
+			return null
+		}
+
+		return ByteArrayOutputStream().use { out ->
+			ImageIO.write(image, "png", out)
+			out.toByteArray()
+		}
+	}
+
+	private fun registerTexture(key: String, bytes: ByteArray) {
+		try {
+			val image = NativeImage.read(ByteArrayInputStream(bytes))
+			val id = Identifier.fromNamespaceAndPath("official-server-list", "image/${key.hashCode().toUInt()}")
+			val texture = DynamicTexture(Supplier { "official-server-list-image-$id" }, image)
+
+			Minecraft.getInstance().textureManager.register(id, texture)
+			textureRefs[key] = texture
+			cache[key] = ImageTexture(id, image.width, image.height)
+		} catch (e: Exception) {}
 	}
 }

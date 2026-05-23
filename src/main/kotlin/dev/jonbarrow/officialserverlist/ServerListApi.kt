@@ -19,7 +19,7 @@ import java.time.Duration
 // * - [ ] /api
 // * - [ ] /api/auth/getSession
 // * - [ ] /api/auth/logout
-// * - [ ] /api/auth/minecraft-login/[code]
+// * - [x] /api/auth/minecraft-login/[code]
 // * - [x] /api/auth/[hash]
 // * - [x] /api/badges
 // * - [ ] /api/contact
@@ -118,6 +118,10 @@ object ServerListApi {
 		val decrypted = CryptoUtil.decryptCryptoJS(response.payload, SECURITY_KEY)
 
 		loginSession = json.decodeFromString<LoginSessionData>(decrypted)
+	}
+
+	fun linkMinecraftAccount(code: String) {
+		loginSession = request<LoginSessionData>("$API_BASE/auth/minecraft-login/$code").getOrNull() ?: return
 	}
 
 	// * Used to display the servers on the main https://findmcserver.com home page, before you search
