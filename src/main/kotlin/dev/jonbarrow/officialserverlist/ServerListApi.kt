@@ -30,14 +30,14 @@ import java.time.Duration
 // * - [ ] /api/events/edit/[id]
 // * - [ ] /api/events/edit-details/[userId]/[slug]
 // * - [ ] /api/events/favorite/add
-// * - [ ] /api/events/favorite/list
+// * - [x] /api/events/favorite/list
 // * - [ ] /api/events/favorite/remove
 // * - [ ] /api/events/highlights/[id]
 // * - [x] /api/events/servers/[serverId]
 // * - [x] /api/events/slug/[slug]
 // * - [ ] /api/events/tokens/purchase/[userId]
 // * - [ ] /api/events/tokens/[userId]
-// * - [ ] /api/events/upcoming/[userId]/upcomingEvents
+// * - [x] /api/events/upcoming/[userId]/upcomingEvents
 // * - [ ] /api/launcher/servers
 // * - [ ] /api/launcher/servers/featured
 // * - [x] /api/servers
