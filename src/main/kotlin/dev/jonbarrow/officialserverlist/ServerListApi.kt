@@ -221,7 +221,8 @@ object ServerListApi {
 
 	// * Votes for a specific server
 	fun voteForServer(serverID: String): Result<VoteResult> {
-		val username = Minecraft.getInstance().user.name
+		val loginSession = loginSession
+		val username = if (loginSession?.platformUserName != null) loginSession.platformUserName else Minecraft.getInstance().user.name
 		val ipAddress = getIPAddress()
 		return requestPost<VoteRequest, VoteResult>("$API_BASE/servers/vote", VoteRequest(serverID, username, ipAddress))
 	}
