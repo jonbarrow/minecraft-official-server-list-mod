@@ -31,12 +31,15 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 	}
 
 	enum class Tab(val labelKey: String) {
+		// TODO - Should "Your Servers" be before "Favorite Servers"?
 		FAVORITE_SERVERS("officialserverlist.tab.favorite_servers"),
 		YOUR_SERVERS("officialserverlist.tab.your_servers"),
 		FAVORITE_EVENTS("officialserverlist.tab.favorite_events"),
 		UPCOMING_EVENTS("officialserverlist.tab.upcoming_events")
 	}
 
+	private val managedServersFilters = ServerSearchFilters()
+	private var managedServers: ServerSearchResults? = null
 	private var favoriteServers: List<FavoritedServer>? = null
 	private var upcomingEvents: List<BasicEventInfo>? = null
 	private var favoriteEvents: List<ServerEvent>? = null
@@ -47,7 +50,10 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 	override fun init() {
 		super.init()
 
-		if (ServerListApi.loginSession != null && (favoriteServers == null || upcomingEvents == null || favoriteEvents == null)) {
+		// * This is what the official client uses
+		managedServersFilters.sortBy = ServerSearchFilters.SortOption.BADGES_VOTES
+
+		if (ServerListApi.loginSession != null && (managedServers == null || favoriteServers == null || upcomingEvents == null || favoriteEvents == null)) {
 			startFetch()
 		}
 
@@ -59,19 +65,22 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 
 		CompletableFuture.supplyAsync {
 			val loginSession = ServerListApi.loginSession!!
+			val managedServers = ServerListApi.fetchManagedServers(loginSession.userId, managedServersFilters).getOrNull()
 			val favoriteServers = ServerListApi.fetchFavoritedServers(loginSession.userId).getOrNull()
 			val upcomingEvents = ServerListApi.fetchUpcomingEvents(loginSession.userId).getOrNull()
 			val favoriteEvents = ServerListApi.fetchFavoritedEvents(loginSession.userId).getOrNull()
 
-			listOf(favoriteServers, upcomingEvents, favoriteEvents)
+			listOf(managedServers, favoriteServers, upcomingEvents, favoriteEvents)
 		}.thenAccept { results ->
 			minecraft.execute {
 				@Suppress("UNCHECKED_CAST")
-				favoriteServers = results[0] as List<FavoritedServer>
+				managedServers = results[0] as ServerSearchResults
 				@Suppress("UNCHECKED_CAST")
-				upcomingEvents = results[1] as List<BasicEventInfo>
+				favoriteServers = results[1] as List<FavoritedServer>
 				@Suppress("UNCHECKED_CAST")
-				favoriteEvents = results[2] as List<ServerEvent>
+				upcomingEvents = results[2] as List<BasicEventInfo>
+				@Suppress("UNCHECKED_CAST")
+				favoriteEvents = results[3] as List<ServerEvent>
 				loading = false
 				clearWidgets()
 				init(width, height)
@@ -249,9 +258,9 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 
 				when (tab) {
 					Tab.FAVORITE_SERVERS -> renderFavoriteServersTab(graphics, font, left, top, rowWidth)
+					Tab.YOUR_SERVERS -> rendeManagedServersTab(graphics, font, left, top, rowWidth)
 					Tab.FAVORITE_EVENTS -> renderFavoriteEventsTab(graphics, font, left, top, rowWidth)
 					Tab.UPCOMING_EVENTS -> renderUpcomingEventsTab(graphics, font, left, top, rowWidth)
-					else -> Unit
 				}
 			}
 
@@ -270,6 +279,23 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 
 				for (server in favoriteServers!!) {
 					drawFavoritedServerCard(graphics, font, server, left, y, rowWidth, cardHeight)
+					y += cardHeight + cardGap
+				}
+			}
+
+			private fun rendeManagedServersTab(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, left: Int, top: Int, rowWidth: Int) {
+				var y = top
+
+				if (managedServers!!.data.isEmpty()) {
+					graphics.text(font, Component.translatable("officialserverlist.empty.no_managed_servers").string, left, y, 0xFFAAAAAA.toInt(), false)
+					return
+				}
+
+				val cardHeight = 60
+				val cardGap = 8
+
+				for (server in managedServers!!.data) {
+					drawManagedServerCard(graphics, font, server, left, y, rowWidth, cardHeight)
 					y += cardHeight + cardGap
 				}
 			}
@@ -311,6 +337,48 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 			// TODO - These card drawing functions are almost identcal to each other, merge them?
 
 			private fun drawFavoritedServerCard(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, server: FavoritedServer, left: Int, top: Int, rowWidth: Int, cardHeight: Int) {
+				// TODO - Make this be more like the server list cards?
+
+				val bg = server.backgroundImage?.url?.let { ImageLoader.get(it) }
+				if (bg != null) {
+					graphics.blit(RenderPipelines.GUI_TEXTURED, bg.id, left, top, 0f, 0f, rowWidth, cardHeight, rowWidth, cardHeight)
+					graphics.fill(left, top, left + rowWidth, top + cardHeight, 0xAA000000.toInt())
+				} else {
+					graphics.fill(left, top, left + rowWidth, top + cardHeight, 0xFF1A1A1A.toInt())
+				}
+
+				val iconSize = 48
+				val iconX = left + 8
+				val iconY = top + (cardHeight - iconSize) / 2
+				val icon = ImageLoader.get(server.iconImage.url)
+				if (icon != null) {
+					graphics.blit(RenderPipelines.GUI_TEXTURED, icon.id, iconX, iconY, 0f, 0f, iconSize, iconSize, iconSize, iconSize)
+				} else {
+					graphics.fill(iconX, iconY, iconX + iconSize, iconY + iconSize, 0xFF333333.toInt())
+				}
+
+				val textX = iconX + iconSize + 8
+				val textRight = left + rowWidth - 8
+				val textWidth = textRight - textX
+				var ly = iconY
+
+				val title = truncateToWidth(font, TextUtils.sanitize(server.name), textWidth)
+				graphics.text(font, title, textX, ly, 0xFFFFFFFF.toInt(), true)
+				ly += font.lineHeight + 2
+
+				val description = TextUtils.sanitize(server.shortDescription ?: "")
+				if (description.isNotEmpty()) {
+					val descTruncated = truncateToWidth(font, description, textWidth)
+					graphics.text(font, descTruncated, textX, ly, 0xFFAAAAAA.toInt(), false)
+					ly += font.lineHeight + 6
+				}
+
+				val statusText = if (server.isOnline) Component.translatable("officialserverlist.label.online").string else Component.translatable("officialserverlist.label.offline").string
+				val statusColor = if (server.isOnline) 0xFF55FF55.toInt() else 0xFFFF5555.toInt()
+				graphics.text(font, "$statusText  ${server.currentOnlinePlayers}/${server.currentMaxPlayers}", textX, ly, statusColor, false)
+			}
+
+			private fun drawManagedServerCard(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, server: BasicServerInfo, left: Int, top: Int, rowWidth: Int, cardHeight: Int) {
 				// TODO - Make this be more like the server list cards?
 
 				val bg = server.backgroundImage?.url?.let { ImageLoader.get(it) }

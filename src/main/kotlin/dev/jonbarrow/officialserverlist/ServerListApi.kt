@@ -67,7 +67,7 @@ import java.time.Duration
 // * - [x] /api/tags/featured
 // * - [x] /api/tracking
 // * - [ ] /api/user/delete/[userId]
-// * - [ ] /api/user/getServers
+// * - [x] /api/user/getServers
 // * - [ ] /api/user/getUserPreferences/[userId]
 // * - [ ] /api/user/linkGsProfile
 // * - [ ] /api/user/linkGsProfile/activate2FA
@@ -178,6 +178,38 @@ object ServerListApi {
 		}
 
 		return request<List<FavoritedServer>>("$API_BASE/servers/favorite/list?" + buildQueryString(params))
+	}
+
+	// * Gets a list of the users owned/managed servers
+	// TODO - I *think* these query paramaters and response type are correct, however I don't own any servers so I don't actually know. Seems right though
+	fun fetchManagedServers(userID: String, filters: ServerSearchFilters, pageSize: Int = 15): Result<ServerSearchResults> {
+		val params = mutableListOf<Pair<String, String>>().apply {
+			add("userId" to userID)
+			add("pageNumber" to filters.pageNumber.toString())
+			add("pageSize" to pageSize.toString())
+			add("sortBy" to filters.sortBy.queryValue)
+			add("edition" to filters.edition.queryValue)
+			add("size" to filters.playerCountQueryValue())
+
+			if (filters.hasExperienceID) {
+				add("hasExperienceId" to "true")
+			}
+
+			if (filters.selectedBadgeIDs.isNotEmpty()) {
+				add("badges" to filters.selectedBadgeIDs.joinToString(","))
+			}
+
+			val tags = filters.allTagIds()
+			if (tags.isNotEmpty()) {
+				add("tags" to tags.joinToString(","))
+			}
+
+			if (filters.searchPhrase.isNotBlank()) {
+				add("searchTerms" to filters.searchPhrase)
+			}
+		}
+
+		return request<ServerSearchResults>("$API_BASE/user/getServers?" + buildQueryString(params))
 	}
 
 	// * Gets the details of a specific event

@@ -86,6 +86,7 @@
   "officialserverlist.empty.no_events": "No events scheduled.",
   "officialserverlist.empty.no_essentials": "No community essentials provided.",
   "officialserverlist.empty.loading": "Loading...",
+  "officialserverlist.empty.no_managed_servers": "No servers managed.",
   "officialserverlist.empty.no_favorite_servers": "No servers favorited.",
   "officialserverlist.empty.no_favorite_events": "No events favorited.",
   "officialserverlist.empty.no_upcoming_events": "No servers coming up.",
