@@ -49,7 +49,7 @@ import java.time.Duration
 // * - [ ] /api/servers/download/downloadFavoriteServers
 // * - [ ] /api/servers/edit
 // * - [ ] /api/servers/favorite/add
-// * - [ ] /api/servers/favorite/list
+// * - [x] /api/servers/favorite/list
 // * - [ ] /api/servers/favorite/remove
 // * - [ ] /api/servers/hosts
 // * - [ ] /api/servers/serverOperators/addServerOperator
@@ -169,6 +169,15 @@ object ServerListApi {
 	// * Gets the events of a specific server
 	fun fetchServerEvents(serverID: String): Result<ServerEventsList> {
 		return request<ServerEventsList>("$API_BASE/events/servers/$serverID")
+	}
+
+	// * Gets a list of the users favorited servers
+	fun fetchFavoritedServers(userID: String): Result<List<FavoritedServer>> {
+		val params = mutableListOf<Pair<String, String>>().apply {
+			add("userId" to userID)
+		}
+
+		return request<List<FavoritedServer>>("$API_BASE/servers/favorite/list?" + buildQueryString(params))
 	}
 
 	// * Gets the details of a specific event

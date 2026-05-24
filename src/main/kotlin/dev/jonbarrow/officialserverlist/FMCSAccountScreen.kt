@@ -37,6 +37,7 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 		UPCOMING_EVENTS("officialserverlist.tab.upcoming_events")
 	}
 
+	private var favoriteServers: List<FavoritedServer>? = null
 	private var upcomingEvents: List<BasicEventInfo>? = null
 	private var favoriteEvents: List<ServerEvent>? = null
 	private var loading: Boolean = false
@@ -46,11 +47,7 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 	override fun init() {
 		super.init()
 
-		// * getServers?userId
-		// * servers/favorite/list?userId
-		// * events/upcoming/{userId}/upcomingEvents
-		// * events/favorite/list?userId
-		if (ServerListApi.loginSession != null && (upcomingEvents == null || favoriteEvents == null)) {
+		if (ServerListApi.loginSession != null && (favoriteServers == null || upcomingEvents == null || favoriteEvents == null)) {
 			startFetch()
 		}
 
@@ -62,16 +59,19 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 
 		CompletableFuture.supplyAsync {
 			val loginSession = ServerListApi.loginSession!!
+			val favoriteServers = ServerListApi.fetchFavoritedServers(loginSession.userId).getOrNull()
 			val upcomingEvents = ServerListApi.fetchUpcomingEvents(loginSession.userId).getOrNull()
 			val favoriteEvents = ServerListApi.fetchFavoritedEvents(loginSession.userId).getOrNull()
 
-			listOf(upcomingEvents, favoriteEvents)
+			listOf(favoriteServers, upcomingEvents, favoriteEvents)
 		}.thenAccept { results ->
 			minecraft.execute {
 				@Suppress("UNCHECKED_CAST")
-				upcomingEvents = results[0] as List<BasicEventInfo>
+				favoriteServers = results[0] as List<FavoritedServer>
 				@Suppress("UNCHECKED_CAST")
-				favoriteEvents = results[1] as List<ServerEvent>
+				upcomingEvents = results[1] as List<BasicEventInfo>
+				@Suppress("UNCHECKED_CAST")
+				favoriteEvents = results[2] as List<ServerEvent>
 				loading = false
 				clearWidgets()
 				init(width, height)
@@ -226,7 +226,7 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 		returnToParent()
 	}
 
-	private inner class SectionListWidget(width: Int, height: Int, y: Int, private val tab: Tab) : ObjectSelectionList<SectionListWidget.SectionEntry>(minecraft, width, height, y, computeHeight(tab, upcomingEvents, favoriteEvents)) {
+	private inner class SectionListWidget(width: Int, height: Int, y: Int, private val tab: Tab) : ObjectSelectionList<SectionListWidget.SectionEntry>(minecraft, width, height, y, computeHeight(tab, upcomingEvents)) {
 		init {
 			addEntry(SectionEntry())
 		}
@@ -238,6 +238,8 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 		}
 
 		inner class SectionEntry() : ObjectSelectionList.Entry<SectionEntry>() {
+			private val animationStart = System.currentTimeMillis()
+
 			override fun extractContent(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, hovered: Boolean, partialTick: Float) {
 				val font = Minecraft.getInstance().font
 				val padding = 8
@@ -246,6 +248,7 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 				val rowWidth = width - padding * 2
 
 				when (tab) {
+					Tab.FAVORITE_SERVERS -> renderFavoriteServersTab(graphics, font, left, top, rowWidth)
 					Tab.FAVORITE_EVENTS -> renderFavoriteEventsTab(graphics, font, left, top, rowWidth)
 					Tab.UPCOMING_EVENTS -> renderUpcomingEventsTab(graphics, font, left, top, rowWidth)
 					else -> Unit
@@ -253,6 +256,23 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 			}
 
 			override fun getNarration(): Component = Component.literal("")
+
+			private fun renderFavoriteServersTab(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, left: Int, top: Int, rowWidth: Int) {
+				var y = top
+
+				if (favoriteServers!!.isEmpty()) {
+					graphics.text(font, Component.translatable("officialserverlist.empty.no_favorite_servers").string, left, y, 0xFFAAAAAA.toInt(), false)
+					return
+				}
+
+				val cardHeight = 60
+				val cardGap = 8
+
+				for (server in favoriteServers!!) {
+					drawFavoritedServerCard(graphics, font, server, left, y, rowWidth, cardHeight)
+					y += cardHeight + cardGap
+				}
+			}
 
 			private fun renderFavoriteEventsTab(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, left: Int, top: Int, rowWidth: Int) {
 				var y = top
@@ -288,7 +308,50 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 				}
 			}
 
-			// TODO - This is almost identcal drawUpcomingEventCard, merge the two?
+			// TODO - These card drawing functions are almost identcal to each other, merge them?
+
+			private fun drawFavoritedServerCard(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, server: FavoritedServer, left: Int, top: Int, rowWidth: Int, cardHeight: Int) {
+				// TODO - Make this be more like the server list cards?
+
+				val bg = server.backgroundImage?.url?.let { ImageLoader.get(it) }
+				if (bg != null) {
+					graphics.blit(RenderPipelines.GUI_TEXTURED, bg.id, left, top, 0f, 0f, rowWidth, cardHeight, rowWidth, cardHeight)
+					graphics.fill(left, top, left + rowWidth, top + cardHeight, 0xAA000000.toInt())
+				} else {
+					graphics.fill(left, top, left + rowWidth, top + cardHeight, 0xFF1A1A1A.toInt())
+				}
+
+				val iconSize = 48
+				val iconX = left + 8
+				val iconY = top + (cardHeight - iconSize) / 2
+				val icon = ImageLoader.get(server.iconImage.url)
+				if (icon != null) {
+					graphics.blit(RenderPipelines.GUI_TEXTURED, icon.id, iconX, iconY, 0f, 0f, iconSize, iconSize, iconSize, iconSize)
+				} else {
+					graphics.fill(iconX, iconY, iconX + iconSize, iconY + iconSize, 0xFF333333.toInt())
+				}
+
+				val textX = iconX + iconSize + 8
+				val textRight = left + rowWidth - 8
+				val textWidth = textRight - textX
+				var ly = iconY
+
+				val title = truncateToWidth(font, TextUtils.sanitize(server.name), textWidth)
+				graphics.text(font, title, textX, ly, 0xFFFFFFFF.toInt(), true)
+				ly += font.lineHeight + 2
+
+				val description = TextUtils.sanitize(server.shortDescription ?: "")
+				if (description.isNotEmpty()) {
+					val descTruncated = truncateToWidth(font, description, textWidth)
+					graphics.text(font, descTruncated, textX, ly, 0xFFAAAAAA.toInt(), false)
+					ly += font.lineHeight + 6
+				}
+
+				val statusText = if (server.isOnline) Component.translatable("officialserverlist.label.online").string else Component.translatable("officialserverlist.label.offline").string
+				val statusColor = if (server.isOnline) 0xFF55FF55.toInt() else 0xFFFF5555.toInt()
+				graphics.text(font, "$statusText  ${server.currentOnlinePlayers}/${server.currentMaxPlayers}", textX, ly, statusColor, false)
+			}
+
 			private fun drawFavoritedEventCard(graphics: GuiGraphicsExtractor, font: net.minecraft.client.gui.Font, event: ServerEvent, left: Int, top: Int, rowWidth: Int, cardHeight: Int) {
 				val bg = ImageLoader.get(event.backgroundImage.url)
 				if (bg != null) {
@@ -406,35 +469,52 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 
 				return "$result..."
 			}
+
+			private fun drawPingPongText(graphics: GuiGraphicsExtractor, text: String, x: Int, y: Int, maxWidth: Int, color: Int) {
+				val font = Minecraft.getInstance().font
+				val textWidth = font.width(text)
+				val scrollDistance = textWidth - maxWidth
+
+				val pauseDuration = 1.0
+				val pixelsPerSecond = 30.0
+				val scrollDuration = scrollDistance / pixelsPerSecond
+				val cycleDuration = (pauseDuration + scrollDuration) * 2
+
+				val elapsed = (System.currentTimeMillis() - animationStart) / 1000.0
+				val cyclePos = elapsed % cycleDuration
+
+				val offset: Int = when {
+					cyclePos < pauseDuration -> 0
+					cyclePos < pauseDuration + scrollDuration -> {
+						val progress = (cyclePos - pauseDuration) / scrollDuration
+						(progress * scrollDistance).toInt()
+					}
+					cyclePos < pauseDuration * 2 + scrollDuration -> scrollDistance
+					else -> {
+						val progress = (cyclePos - pauseDuration * 2 - scrollDuration) / scrollDuration
+						(scrollDistance * (1.0 - progress)).toInt()
+					}
+				}
+
+				graphics.enableScissor(x, y, x + maxWidth, y + font.lineHeight)
+				graphics.text(font, text, x - offset, y, color, false)
+				graphics.disableScissor()
+			}
 		}
 	}
 }
 
-private fun computeHeight(tab: FMCSAccountScreen.Tab, upcomingEvents: List<BasicEventInfo>?, favoriteEvents: List<ServerEvent>?): Int {
+private fun computeHeight(tab: FMCSAccountScreen.Tab, cardDatas: List<Any>?): Int {
 	val font = Minecraft.getInstance().font
 	val padding = 8
 	var height = padding * 2
 
-	when (tab) {
-		FMCSAccountScreen.Tab.FAVORITE_EVENTS -> {
-			if (favoriteEvents.isNullOrEmpty()) {
-				height += font.lineHeight
-			} else {
-				val cardHeight = 60
-				val cardGap = 8
-				height += favoriteEvents.size * cardHeight + (favoriteEvents.size - 1) * cardGap
-			}
-		}
-		FMCSAccountScreen.Tab.UPCOMING_EVENTS -> {
-			if (upcomingEvents.isNullOrEmpty()) {
-				height += font.lineHeight
-			} else {
-				val cardHeight = 60
-				val cardGap = 8
-				height += upcomingEvents.size * cardHeight + (upcomingEvents.size - 1) * cardGap
-			}
-		}
-		else -> height += font.lineHeight
+	if (cardDatas.isNullOrEmpty()) {
+		height += font.lineHeight
+	} else {
+		val cardHeight = 60
+		val cardGap = 8
+		height += cardDatas.size * cardHeight + (cardDatas.size - 1) * cardGap
 	}
 
 	return maxOf(height, 100)

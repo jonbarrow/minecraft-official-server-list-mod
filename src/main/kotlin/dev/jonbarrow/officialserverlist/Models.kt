@@ -376,6 +376,63 @@ data class ServerDetails(
 	val votesLast30Days: Int
 )
 
+// * Duplicating these because I can't be arsed to handle all the optional fields in one model.
+// * This API kind of blows with how often stuff changes between endpoints
+@Serializable
+data class FavoritedServerKeywordTag(
+	val id: String,
+	val name: String,
+	val description: String,
+	val type: TagType = TagType.KEYWORD,
+	val is_highlighted: Boolean
+)
+
+@Serializable
+data class FavoritedServerLocationTag(
+	val id: String,
+	val name: String,
+	val description: String?,
+	val type: TagType = TagType.LOCATION,
+	val is_highlighted: Boolean
+)
+
+@Serializable
+data class FavoritedServerLanguageTag(
+	val id: String,
+	val name: String,
+	val description: String?,
+	val type: TagType = TagType.LANGUAGE,
+	val is_highlighted: Boolean
+)
+
+@Serializable
+data class FavoritedServerBadge(
+	val id: String,
+	val name: String,
+	val description: String,
+	val iconUrl: String
+)
+
+@Serializable
+data class FavoritedServer(
+	val id: String,
+	val name: String,
+	val slug: String,
+	val iconImage: Image,
+	val backgroundImage: Image?,
+	val featuredImage: Image?,
+	val shortDescription: String?,
+	val favoriteCount: Int,
+	val currentOnlinePlayers: Int,
+	val currentMaxPlayers: Int,
+	val isOnline: Boolean,
+	val serverTags: List<FavoritedServerKeywordTag>,
+	val serverBadges: List<FavoritedServerBadge>?,
+	val serversServices: Unknown?, // TODO - I scraped every server on the API and none have this field set
+	val serverLanguage: List<FavoritedServerLanguageTag>,
+	val serverLocation: List<FavoritedServerLocationTag>,
+)
+
 @Serializable
 data class EventImage(
 	val id: String,
