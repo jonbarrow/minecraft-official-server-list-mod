@@ -278,7 +278,7 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 				var y = top
 
 				if (favoriteEvents!!.isEmpty()) {
-					graphics.text(font, Component.translatable("officialserverlist.empty.no_events").string, left, y, 0xFFAAAAAA.toInt(), false)
+					graphics.text(font, Component.translatable("officialserverlist.empty.no_favorite_events").string, left, y, 0xFFAAAAAA.toInt(), false)
 					return
 				}
 
@@ -295,7 +295,7 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 				var y = top
 
 				if (upcomingEvents!!.isEmpty()) {
-					graphics.text(font, Component.translatable("officialserverlist.empty.no_events").string, left, y, 0xFFAAAAAA.toInt(), false)
+					graphics.text(font, Component.translatable("officialserverlist.empty.no_upcoming_events").string, left, y, 0xFFAAAAAA.toInt(), false)
 					return
 				}
 

@@ -87,6 +87,8 @@
   "officialserverlist.empty.no_essentials": "No community essentials provided.",
   "officialserverlist.empty.loading": "Loading...",
   "officialserverlist.empty.no_favorite_servers": "No servers favorited.",
+  "officialserverlist.empty.no_favorite_events": "No events favorited.",
+  "officialserverlist.empty.no_upcoming_events": "No servers coming up.",
 
   "officialserverlist.text_box.search": "Search",
 
