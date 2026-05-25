@@ -152,7 +152,8 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 
 		addRenderableWidget(
 			Button.builder(Component.translatable("officialserverlist.button.logout")) {
-				// TODO - stub
+				ServerListApi.logout()
+				returnToParent()
 			}.bounds(logoutX, bottomRowY, HEADER_BUTTON_WIDTH, HEADER_BUTTON_HEIGHT).build()
 		)
 

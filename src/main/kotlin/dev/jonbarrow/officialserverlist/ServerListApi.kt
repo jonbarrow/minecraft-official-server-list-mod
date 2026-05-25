@@ -22,7 +22,7 @@ import java.time.Duration
 // *
 // * - [ ] /api
 // * - [x] /api/auth/getSession
-// * - [ ] /api/auth/logout
+// * - [x] /api/auth/logout
 // * - [x] /api/auth/minecraft-login/[code]
 // * - [x] /api/auth/[hash]
 // * - [x] /api/badges
@@ -143,6 +143,13 @@ object ServerListApi {
 		loginSession = json.decodeFromString<LoginSessionData>(decrypted)
 
 		return Result.success(loginSession!!)
+	}
+
+	fun logout() {
+		requestPost<Unit, Unit>("$API_BASE/auth/logout", null)
+		cookieManager.cookieStore.removeAll() // * Endpoint returns a Set-Cookie header to set the cookie to an empty string with maxAge=0, but clear it just in case
+		clearPersistedCookies()
+		loginSession = null
 	}
 
 	// * Used to display the servers on the main https://findmcserver.com home page, before you search
@@ -433,19 +440,21 @@ object ServerListApi {
 		}
 	}
 
-	private inline fun <reified TBody, reified TResponse> requestPost(url: String, body: TBody): Result<TResponse> {
+	private inline fun <reified TBody, reified TResponse> requestPost(url: String, body: TBody? = null): Result<TResponse> {
 		return try {
-			val bodyJson = json.encodeToString(body)
-
-			val request = HttpRequest.newBuilder()
+			val builder = HttpRequest.newBuilder()
 				.uri(URI.create(url))
 				.header("Accept", "application/json")
-				.header("Content-Type", "application/json")
 				.header("User-Agent", USER_AGENT)
-				.POST(HttpRequest.BodyPublishers.ofString(bodyJson))
-				.build()
 
-			val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+			if (body != null) {
+				val bodyJson = json.encodeToString(body)
+				builder.header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(bodyJson))
+			} else {
+				builder.POST(HttpRequest.BodyPublishers.noBody())
+			}
+
+			val response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString())
 
 			if (TResponse::class == Unit::class) {
 				@Suppress("UNCHECKED_CAST")
