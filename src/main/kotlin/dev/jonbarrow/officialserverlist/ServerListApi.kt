@@ -1,6 +1,8 @@
 package dev.jonbarrow.officialserverlist
 
 import net.minecraft.client.Minecraft
+import net.fabricmc.loader.api.FabricLoader
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.net.URI
@@ -10,14 +12,16 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.net.CookieManager
 import java.net.CookiePolicy
+import java.net.HttpCookie
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.time.Duration
 
 // * https://findmcserver.com/_next/static/EQXVm_bYrkKWKVrcOxdTp/_buildManifest.js
 // * All API endpoints:
 // *
 // * - [ ] /api
-// * - [ ] /api/auth/getSession
+// * - [x] /api/auth/getSession
 // * - [ ] /api/auth/logout
 // * - [x] /api/auth/minecraft-login/[code]
 // * - [x] /api/auth/[hash]
@@ -83,7 +87,7 @@ object ServerListApi {
 	}
 	private var cachedIPAddress: String? = null // * A few API endpoints consume this, so cache it to not spam the API
 	private val cookieManager = CookieManager().apply {
-		setCookiePolicy(CookiePolicy.ACCEPT_ALL) // TODO - At some point the login cookies need to be stored for reuse so users don't need to login every launch
+		setCookiePolicy(CookiePolicy.ACCEPT_ALL)
 	}
 	private val client: HttpClient = HttpClient.newBuilder().cookieHandler(cookieManager).build()
 
@@ -91,8 +95,14 @@ object ServerListApi {
 	private const val API_BASE = "https://findmcserver.com/api"
 	private const val USER_AGENT = "OfficialServerListMod/1.0 (Fabric Minecraft Mod)" // * Let's be nice and tell them who we are. Don't resort to spoofing just yet
 	private const val SECURITY_KEY = "Mbh6Ku8kVfrvv1DVWekX" // * This is a static key the official client uses to both AES encrypt certain responses and sign client-created JWTs
+	private val SESSION_FILE = FabricLoader.getInstance().configDir.resolve("officialserverlist").resolve("session.dat")
 
+	var persistSessionCookie = false
 	var loginSession: LoginSessionData? = null
+
+	init {
+		loadPersistedCookies()
+	}
 
 	// * Used by the official website for analytics tracking.
 	// * Not used here, but implemented for documentation purposes
@@ -118,10 +128,21 @@ object ServerListApi {
 		val decrypted = CryptoUtil.decryptCryptoJS(response.payload, SECURITY_KEY)
 
 		loginSession = json.decodeFromString<LoginSessionData>(decrypted)
+		persistCookies()
 	}
 
 	fun linkMinecraftAccount(code: String) {
 		loginSession = request<LoginSessionData>("$API_BASE/auth/minecraft-login/$code").getOrNull() ?: return
+		persistCookies()
+	}
+
+	fun getSession(): Result<LoginSessionData> {
+		val response = request<LoginSessionPayload>("$API_BASE/auth/getSession").getOrNull() ?: return Result.failure(Exception("getSession request failed"))
+		val decrypted = CryptoUtil.decryptCryptoJS(response.payload, SECURITY_KEY)
+
+		loginSession = json.decodeFromString<LoginSessionData>(decrypted)
+
+		return Result.success(loginSession!!)
 	}
 
 	// * Used to display the servers on the main https://findmcserver.com home page, before you search
@@ -281,6 +302,100 @@ object ServerListApi {
 		val username = if (loginSession?.platformUserName != null) loginSession.platformUserName else Minecraft.getInstance().user.name
 		val ipAddress = getIPAddress()
 		return requestPost<VoteRequest, VoteResult>("$API_BASE/servers/vote", VoteRequest(serverID, username, ipAddress))
+	}
+
+	private fun persistCookies() {
+		if (!persistSessionCookie) {
+			return
+		}
+
+		try {
+			val cookies = cookieManager.cookieStore.cookies.map { cookie ->
+				val maxAge = cookie.maxAge
+				val expiresAt = if (maxAge < 0) {
+					-1L
+				} else {
+					System.currentTimeMillis() + maxAge * 1000L
+				}
+
+				PersistedCookie(
+					name = cookie.name,
+					value = cookie.value,
+					domain = cookie.domain,
+					path = cookie.path,
+					expiresAt = expiresAt,
+					secure = cookie.secure,
+					httpOnly = cookie.isHttpOnly,
+					version = cookie.version
+				)
+			}
+
+			if (cookies.isEmpty()) {
+				return
+			}
+
+			val plaintext = json.encodeToString(cookies)
+			val obfuscated = CryptoUtil.obfuscateCookie(plaintext)
+
+			Files.createDirectories(SESSION_FILE.parent)
+			Files.writeString(SESSION_FILE, obfuscated)
+		} catch (e: Exception) {
+			// TODO - Handle this
+		}
+	}
+
+	private fun loadPersistedCookies() {
+		try {
+			if (!Files.exists(SESSION_FILE)) {
+				return
+			}
+
+			val obfuscated = Files.readString(SESSION_FILE)
+			val plaintext = CryptoUtil.deobfuscateCookie(obfuscated) ?: run {
+				// * Yeet the bitch if something goes wrong, just make the user login again
+				clearPersistedCookies()
+				return
+			}
+
+			val cookies = json.decodeFromString<List<PersistedCookie>>(plaintext)
+			val now = System.currentTimeMillis()
+
+			for (persisted in cookies) {
+				val maxAge: Long = if (persisted.expiresAt < 0) {
+					-1L
+				} else {
+					val remaining = persisted.expiresAt - now
+					if (remaining <= 0) {
+						continue
+					}
+
+					remaining / 1000L
+				}
+
+				val cookie = HttpCookie(persisted.name, persisted.value).apply {
+					domain = persisted.domain
+					path = persisted.path
+					this.maxAge = maxAge
+					secure = persisted.secure
+					isHttpOnly = persisted.httpOnly
+					version = persisted.version
+				}
+
+				cookieManager.cookieStore.add(URI.create("https://findmcserver.com"), cookie)
+			}
+
+			getSession()
+		} catch (e: Exception) {
+			clearPersistedCookies()
+		}
+	}
+
+	private fun clearPersistedCookies() {
+		try {
+			Files.deleteIfExists(SESSION_FILE)
+		} catch (e: Exception) {
+			// * Nothing to do if we can't delete it
+		}
 	}
 
 	private fun getIPAddress(): String {

@@ -1,6 +1,7 @@
 package dev.jonbarrow.officialserverlist
 
 import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
@@ -49,5 +50,83 @@ object CryptoUtil {
 		cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), IvParameterSpec(iv))
 
 		return String(cipher.doFinal(ciphertext), Charsets.UTF_8)
+	}
+
+	// * FMCS cookie obfuscation. NOT real security. The key is derived from local values so
+	// * anything running on this machine can re-derive it. This only raises the bar above
+	// * storing the cookie in plaintext, and stops a copied file from being trivially decrypted
+	// * on a different machine.
+	// * See https://github.com/javakeyring/java-keyring#security-concerns for why we can't use
+	// * the system keyring for this. I couldn't think of anything better, sorry
+	private const val OBFUSCATION_VERSION: Byte = 1
+	private const val HASH_SIZE: Int = 32
+
+	private fun sha256(data: ByteArray): ByteArray {
+		return MessageDigest.getInstance("SHA-256").digest(data)
+	}
+
+	private fun machineKey(): ByteArray {
+		val keySource = buildString {
+			append(System.getProperty("user.name") ?: "")
+			append(System.getenv("COMPUTERNAME") ?: System.getenv("HOSTNAME") ?: "")
+			append(System.getProperty("os.name") ?: "")
+		}
+
+		return sha256(keySource.toByteArray(Charsets.UTF_8))
+	}
+
+	fun obfuscateCookie(plaintext: String): String {
+		val iv = ByteArray(16)
+		SecureRandom().nextBytes(iv)
+
+		val plaintextBytes = plaintext.toByteArray(Charsets.UTF_8)
+		val hash = sha256(plaintextBytes)
+		val payload = ByteArray(plaintextBytes.size + HASH_SIZE)
+
+		System.arraycopy(plaintextBytes, 0, payload, 0, plaintextBytes.size)
+		System.arraycopy(hash, 0, payload, plaintextBytes.size, HASH_SIZE)
+
+		val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+		cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(machineKey(), "AES"), IvParameterSpec(iv))
+		val ciphertext = cipher.doFinal(payload)
+		val obfuscated = ByteArray(1 + iv.size + ciphertext.size)
+
+		obfuscated[0] = OBFUSCATION_VERSION
+		System.arraycopy(iv, 0, obfuscated, 1, iv.size)
+		System.arraycopy(ciphertext, 0, obfuscated, 1 + iv.size, ciphertext.size)
+
+		return Base64.getEncoder().encodeToString(obfuscated)
+	}
+
+	fun deobfuscateCookie(payloadB64: String): String? {
+		return try {
+			val obfuscated = Base64.getDecoder().decode(payloadB64)
+			if (obfuscated.isEmpty() || obfuscated[0] != OBFUSCATION_VERSION) {
+				return null
+			}
+
+			val iv = obfuscated.copyOfRange(1, 17)
+			val ciphertext = obfuscated.copyOfRange(17, obfuscated.size)
+
+			val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+			cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(machineKey(), "AES"), IvParameterSpec(iv))
+
+			val payload = cipher.doFinal(ciphertext)
+			if (payload.size < HASH_SIZE) {
+				return null
+			}
+
+			val plaintextBytes = payload.copyOfRange(0, payload.size - HASH_SIZE)
+			val storedHash = payload.copyOfRange(payload.size - HASH_SIZE, payload.size)
+			val computedHash = sha256(plaintextBytes)
+
+			if (!MessageDigest.isEqual(storedHash, computedHash)) {
+				return null
+			}
+
+			String(plaintextBytes, Charsets.UTF_8)
+		} catch (e: Exception) {
+			null
+		}
 	}
 }

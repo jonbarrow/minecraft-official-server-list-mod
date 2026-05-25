@@ -69,6 +69,7 @@
   "officialserverlist.label.player_joined": "%d player joined",
   "officialserverlist.label.players_joined": "%d players joined",
   "officialserverlist.label.full_text": "Full text: ",
+  "officialserverlist.label.remember_me_disclaimer": "Your FMCS session cookie will be encrypted on disk, but this is mostly obfuscation.\nSee https://github.com/javakeyring/java-keyring for details on why secure secret storage is not always possible in Java apps with a shared JVM.",
   "officialserverlist.label.logged_in_as": "Logged in as %s",
 
   "officialserverlist.error.unknown": "Unknown error",
@@ -107,6 +108,8 @@
   "officialserverlist.button.preferences": "Preferences",
   "officialserverlist.button.logout": "Logout",
   "officialserverlist.button.delete_account": "Delete Account",
+
+  "officialserverlist.checkbox.remember_me": "Remember Me",
 
   "officialserverlist.edition.java": "Java",
   "officialserverlist.edition.cross_play": "Cross Play",

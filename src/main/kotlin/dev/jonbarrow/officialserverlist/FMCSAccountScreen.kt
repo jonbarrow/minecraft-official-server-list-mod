@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.Button
+import net.minecraft.client.gui.components.Checkbox
 import net.minecraft.client.gui.components.ObjectSelectionList
 import net.minecraft.client.gui.components.LoadingDotsWidget
 import net.minecraft.client.gui.screens.Screen
@@ -112,6 +113,16 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 				}.bounds(width / 2 - 45, height / 2 - 10, 90, 20).build()
 			)
 
+			addRenderableWidget(
+				Checkbox.builder(Component.translatable("officialserverlist.checkbox.remember_me"), font)
+					.selected(ServerListApi.persistSessionCookie)
+					.onValueChange { _, value ->
+						ServerListApi.persistSessionCookie = value
+						clearWidgets()
+						init(width, height)
+					}.pos(width / 2 - 45, height / 2 + 16).build()
+			)
+
 			return
 		}
 
@@ -197,7 +208,22 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 	}
 
 	override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, delta: Float) {
-		ServerListApi.loginSession?.let { drawHeader(graphics, it) }
+		if (ServerListApi.loginSession == null) {
+			if (ServerListApi.persistSessionCookie) {
+				val disclaimer = Component.translatable("officialserverlist.label.remember_me_disclaimer")
+				val maxWidth = 300
+				var dy = height / 2 + 42
+
+				for (line in font.split(disclaimer, maxWidth)) {
+					val lineWidth = font.width(line)
+					graphics.text(font, line, width / 2 - lineWidth / 2, dy, 0xFFFFAA55.toInt(), false)
+					dy += font.lineHeight + 1
+				}
+			}
+		} else {
+			drawHeader(graphics, ServerListApi.loginSession!!)
+		}
+
 		super.extractRenderState(graphics, mouseX, mouseY, delta)
 	}
 

@@ -167,6 +167,18 @@ enum class RolesType {
 }
 
 @Serializable
+data class PersistedCookie(
+	val name: String,
+	val value: String,
+	val domain: String?,
+	val path: String?,
+	val expiresAt: Long,
+	val secure: Boolean,
+	val httpOnly: Boolean,
+	val version: Int
+)
+
+@Serializable
 data class LoginSessionData(
 	val email: String,
 	val userId: String,
