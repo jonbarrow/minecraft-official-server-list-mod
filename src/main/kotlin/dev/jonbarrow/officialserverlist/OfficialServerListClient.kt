@@ -9,9 +9,12 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen
 import net.minecraft.network.chat.Component
+import net.dimaskama.mcef.api.MCEFApi;
 
 object OfficialServerListClient : ClientModInitializer {
 	override fun onInitializeClient() {
+		MCEFApi.initialize()
+
 		ScreenEvents.AFTER_INIT.register { _, screen, _, _ ->
 			if (screen is JoinMultiplayerScreen) {
 				addCustomButton(screen)

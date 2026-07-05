@@ -125,6 +125,14 @@ enum class EventJoinType {
 }
 
 @Serializable
+enum class EventImageType {
+	ICON,
+	BACKGROUND,
+	FEATURE,
+	SCREENSHOT
+}
+
+@Serializable
 enum class GameSaferStatus {
 	CREATED,
 	VERIFIED_EMAIL,
@@ -147,6 +155,45 @@ enum class MojangStatus {
 	GS_RE_REVIEW,
 	DECLINED
 }
+
+@Serializable
+enum class RolesType {
+	SITE_ADMIN,
+	SITE_MODERATOR,
+	TEAM_GS_MEMBER,
+	TEAM_MJ_MEMBER,
+	SERVER_OPERATOR,
+	SITE_USER
+}
+
+@Serializable
+data class PersistedCookie(
+	val name: String,
+	val value: String,
+	val domain: String?,
+	val path: String?,
+	val expiresAt: Long,
+	val secure: Boolean,
+	val httpOnly: Boolean,
+	val version: Int
+)
+
+@Serializable
+data class LoginSessionData(
+	val email: String,
+	val userId: String,
+	val platformUserId: String?,
+	val platformUserName: String?,
+	val platformImg: String?,
+	val rolesType: RolesType,
+	val newPlayer: Boolean?,
+	val userIdEnviado: String?
+)
+
+@Serializable
+data class LoginSessionPayload(
+	val payload: String
+)
 
 @Serializable
 data class TrackingEventRequest(
@@ -341,13 +388,70 @@ data class ServerDetails(
 	val votesLast30Days: Int
 )
 
+// * Duplicating these because I can't be arsed to handle all the optional fields in one model.
+// * This API kind of blows with how often stuff changes between endpoints
+@Serializable
+data class FavoritedServerKeywordTag(
+	val id: String,
+	val name: String,
+	val description: String,
+	val type: TagType = TagType.KEYWORD,
+	val is_highlighted: Boolean
+)
+
+@Serializable
+data class FavoritedServerLocationTag(
+	val id: String,
+	val name: String,
+	val description: String?,
+	val type: TagType = TagType.LOCATION,
+	val is_highlighted: Boolean
+)
+
+@Serializable
+data class FavoritedServerLanguageTag(
+	val id: String,
+	val name: String,
+	val description: String?,
+	val type: TagType = TagType.LANGUAGE,
+	val is_highlighted: Boolean
+)
+
+@Serializable
+data class FavoritedServerBadge(
+	val id: String,
+	val name: String,
+	val description: String,
+	val iconUrl: String
+)
+
+@Serializable
+data class FavoritedServer(
+	val id: String,
+	val name: String,
+	val slug: String,
+	val iconImage: Image,
+	val backgroundImage: Image?,
+	val featuredImage: Image?,
+	val shortDescription: String?,
+	val favoriteCount: Int,
+	val currentOnlinePlayers: Int,
+	val currentMaxPlayers: Int,
+	val isOnline: Boolean,
+	val serverTags: List<FavoritedServerKeywordTag>,
+	val serverBadges: List<FavoritedServerBadge>?,
+	val serversServices: Unknown?, // TODO - I scraped every server on the API and none have this field set
+	val serverLanguage: List<FavoritedServerLanguageTag>,
+	val serverLocation: List<FavoritedServerLocationTag>,
+)
+
 @Serializable
 data class EventImage(
 	val id: String,
 	val url: String,
 	val altText: String?,
 	val title: String?,
-	val imageType: String
+	val imageType: EventImageType
 )
 
 @Serializable
@@ -423,6 +527,20 @@ data class EventDiscoveryResult(
 	val highlighted: List<Unknown>,
 	val live: List<Unknown>,
 	val upcoming: List<Unknown>
+)
+
+@Serializable
+data class BasicEventInfo(
+	val id: String,
+	val slug: String,
+	val title: String,
+	val startingDate: String,
+	val joinType: EventJoinType,
+	val eventJoinedCount: Int,
+	val eventType: EventType,
+	val backgroundImage: EventImageType, // TODO - What? The only event I can find has this set to the string "BACKGROUND", not a EventImage object?
+	val serverName: String,
+	val serverSlug: String
 )
 
 @Serializable
@@ -507,4 +625,80 @@ data class VoteRequest(
 @Serializable
 data class VoteResult(
 	val success: Boolean
+)
+
+@Serializable
+data class LanguagesPreference(
+	val id: String,
+	val name: String,
+	val description: String,
+	val type: String // * Always "LANGUAGE"
+)
+
+@Serializable
+data class ServersPreference(
+	val id: String,
+	val name: String,
+	val favorite_on: String,
+	val is_active: Boolean
+)
+
+@Serializable
+data class EventsPreference(
+	val id: String,
+	val slug: String,
+	val title: String,
+	val joined_od: String,
+	val event_notification: Boolean
+)
+
+@Serializable
+data class UserPreferences(
+	val id: String, // * Different from userId, I assume it's the ID of the DB record or something?
+	val userId: String,
+	val allowSwearing: Boolean,
+	val platform: String, // TODO - Enum this, one of "JAVA", "BEDROCK", or "BOTH"
+	val playerNewsletter: Boolean,
+	val serverNewsletter: Boolean,
+	val sortPreference: String?, // TODO - Enum this, it's the same as ServerSearchFilters.SortOption
+	val languagesPreferences: List<LanguagesPreference>?,
+	val serversPreferences: List<ServersPreference>?, // * This just seems to be your favorited servers...?
+	val eventsPreferences: List<EventsPreference>?, // * This just seems to be your favorited events...? Even events that are in the past are also stored here
+	val gamerSaferGuildMemberId: String?, // TODO - Confirm this type, I assume it's a string but I don't actually know
+	val gamerSafer2FAActive: Boolean
+)
+
+// * Every field is marked as optional because the official client uses this in 3 different contexts with 3 different sets of fields:
+// * - When updating the main user preferences, the fields allowSwearing, platform, sortPreference and keywords is sent
+// * - When changing whether or not you want to get server news letters, only the serverNewsletter field is sent
+// * - When changing whether or not you want to get server news letters, only the playerNewsletter field is sent
+@Serializable
+data class UpdateUserPreferencesPayload(
+	val allowSwearing: Boolean?,
+	val platform: String?, // TODO - Enum this, one of "JAVA", "BEDROCK", or "BOTH"
+	val playerNewsletter: Boolean?,
+	val serverNewsletter: Boolean?,
+	val sortPreference: String?, // TODO - Enum this, it's the same as ServerSearchFilters.SortOption
+	val keywords: List<String>? // * ServerLanguageTag IDs
+)
+
+@Serializable
+data class UpdateUserPreferencesRequest(
+	val payload: String, // * JWT of UpdateUserPreferencesPayload
+	val userId: String
+)
+
+@Serializable
+data class DeleteAccountPayload(
+	val requestedByUserId: String // * Normally always just the same as your own user ID, maybe this means other users/admins can do this for other accounts?
+)
+
+@Serializable
+data class DeleteAccountRequest(
+	val payload: String // * JWT of DeleteAccountPayload
+)
+
+@Serializable
+data class DeleteAccountResponse(
+	val requestId: String // * Unknown, some UUIDv4?
 )

@@ -125,17 +125,13 @@ class ServerSearchFilterScreen(private val parent: Screen, private val filters: 
 			listOf(badges, versions, languages, locations, keywords)
 		}.thenAccept { results ->
 			minecraft.execute {
-				@Suppress("UNCHECKED_CAST")
-				cachedBadges = results[0] as List<BadgeListBadge>
-				@Suppress("UNCHECKED_CAST")
-				cachedVersions = results[1] as List<TagListTag>
-				@Suppress("UNCHECKED_CAST")
-				cachedLanguages = results[2] as List<TagListTag>
-				@Suppress("UNCHECKED_CAST")
-				cachedLocations = results[3] as List<TagListTag>
-				@Suppress("UNCHECKED_CAST")
-				cachedKeywords = results[4] as List<TagListTag>
+				cachedBadges = results[0] as? List<BadgeListBadge>
+				cachedVersions = results[1] as? List<TagListTag>
+				cachedLanguages = results[2] as? List<TagListTag>
+				cachedLocations = results[3] as? List<TagListTag>
+				cachedKeywords = results[4] as? List<TagListTag>
 				loading = false
+
 				clearWidgets()
 				init(width, height)
 			}
