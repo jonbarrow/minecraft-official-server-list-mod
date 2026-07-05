@@ -44,6 +44,7 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 	private var favoriteServers: List<FavoritedServer>? = null
 	private var upcomingEvents: List<BasicEventInfo>? = null
 	private var favoriteEvents: List<ServerEvent>? = null
+	private var userPreferences: UserPreferences? = null
 	private var loading: Boolean = false
 	private var activeTab: Tab = Tab.FAVORITE_SERVERS
 	private var sectionList: SectionListWidget? = null
@@ -54,7 +55,7 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 		// * This is what the official client uses
 		managedServersFilters.sortBy = ServerSearchFilters.SortOption.BADGES_VOTES
 
-		if (ServerListApi.loginSession != null && (managedServers == null || favoriteServers == null || upcomingEvents == null || favoriteEvents == null)) {
+		if (ServerListApi.loginSession != null && (managedServers == null || favoriteServers == null || upcomingEvents == null || favoriteEvents == null || userPreferences == null)) {
 			startFetch()
 		}
 
@@ -70,8 +71,9 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 			val favoriteServers = ServerListApi.fetchFavoritedServers(loginSession.userId).getOrNull()
 			val upcomingEvents = ServerListApi.fetchUpcomingEvents(loginSession.userId).getOrNull()
 			val favoriteEvents = ServerListApi.fetchFavoritedEvents(loginSession.userId).getOrNull()
+			val userPreferences = ServerListApi.fetchUserPreferences(loginSession.userId).getOrNull()
 
-			listOf(managedServers, favoriteServers, upcomingEvents, favoriteEvents)
+			listOf(managedServers, favoriteServers, upcomingEvents, favoriteEvents, userPreferences)
 		}.thenAccept { results ->
 			minecraft.execute {
 				@Suppress("UNCHECKED_CAST")
@@ -82,6 +84,8 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 				upcomingEvents = results[2] as List<BasicEventInfo>
 				@Suppress("UNCHECKED_CAST")
 				favoriteEvents = results[3] as List<ServerEvent>
+				@Suppress("UNCHECKED_CAST")
+				userPreferences = results[4] as UserPreferences
 				loading = false
 				clearWidgets()
 				init(width, height)
@@ -145,8 +149,16 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 		val deleteX = logoutX + HEADER_BUTTON_WIDTH + HEADER_BUTTON_GAP
 
 		addRenderableWidget(
-			Button.builder(Component.translatable("officialserverlist.button.preferences")) {
-				// TODO - stub
+			Button.builder(Component.translatable("officialserverlist.button.preferences")) { _ ->
+				minecraft.execute {
+					minecraft.setScreen(FMCSUserPreferencesScreen(this, userPreferences!!) { newPreferences ->
+						minecraft.execute {
+							userPreferences = ServerListApi.updateUserPreferences(loginSession.userId, newPreferences).getOrNull()
+							clearWidgets()
+							init(width, height)
+						}
+					})
+				}
 			}.bounds(preferencesX, bottomRowY, HEADER_BUTTON_WIDTH, HEADER_BUTTON_HEIGHT).build()
 		)
 

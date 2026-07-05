@@ -11,6 +11,7 @@
   "officialserverlist.screen.sort_servers.title": "Sort By",
   "officialserverlist.screen.server_details.title": "Server Details",
   "officialserverlist.screen.event_details.title": "Event Details",
+  "officialserverlist.screen.user_preferences.title": "Preferences",
 
   "officialserverlist.tab.details": "Details",
   "officialserverlist.tab.rules": "Rules",
@@ -47,6 +48,7 @@
   "officialserverlist.section.prizes": "Prizes",
   "officialserverlist.section.more_info": "More Info",
   "officialserverlist.section.gallery": "Gallery",
+  "officialserverlist.section.primary_languages": "Primary Languages",
 
   "officialserverlist.label.show_official_experiences_only": "Show Only Official Minecraft Experiences",
   "officialserverlist.label.no_address": "No address",
@@ -71,6 +73,8 @@
   "officialserverlist.label.full_text": "Full text: ",
   "officialserverlist.label.remember_me_disclaimer": "Your FMCS session cookie will be encrypted on disk, but this is mostly obfuscation.\nSee https://github.com/javakeyring/java-keyring for details on why secure secret storage is not always possible in Java apps with a shared JVM.",
   "officialserverlist.label.logged_in_as": "Logged in as %s",
+  "officialserverlist.label.platform_preference": "Platform",
+  "officialserverlist.label.sort_preference": "Sort Preference",
 
   "officialserverlist.error.unknown": "Unknown error",
 
@@ -108,6 +112,7 @@
   "officialserverlist.button.preferences": "Preferences",
   "officialserverlist.button.logout": "Logout",
   "officialserverlist.button.delete_account": "Delete Account",
+  "officialserverlist.button.user_preferences_save": "Save Changes",
 
   "officialserverlist.checkbox.remember_me": "Remember Me",
 
@@ -128,5 +133,9 @@
   "officialserverlist.sort.name_asc": "Name A to Z",
   "officialserverlist.sort.name_desc": "Name Z to A",
   "officialserverlist.sort.favorites_desc": "Favorites High to Low",
-  "officialserverlist.sort.favorites_asc": "Favorites Low to High"
+  "officialserverlist.sort.favorites_asc": "Favorites Low to High",
+
+  "officialserverlist.platform.java": "JAVA",
+  "officialserverlist.platform.bedrock": "BEDROCK",
+  "officialserverlist.platform.both": "BOTH"
 }

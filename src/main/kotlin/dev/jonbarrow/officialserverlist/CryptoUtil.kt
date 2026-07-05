@@ -4,8 +4,14 @@ import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.Cipher
+import javax.crypto.Mac
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.put
 
 // * Official client makes use of some JavaScript libraries for crypto that we need to reimplement
 object CryptoUtil {
@@ -50,6 +56,50 @@ object CryptoUtil {
 		cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), IvParameterSpec(iv))
 
 		return String(cipher.doFinal(ciphertext), Charsets.UTF_8)
+	}
+
+	// * Mimics https://www.npmjs.com/package/jwt-encode, which is what FMCS uses for creating signed POST/PATCH payloads
+	val jwtJson: Json = Json {
+		explicitNulls = false
+	}
+
+	internal fun base64url(data: ByteArray): String {
+		return Base64.getEncoder().encodeToString(data)
+			.replace(Regex("=+$"), "")
+			.replace('+', '-')
+			.replace('/', '_')
+	}
+
+	internal fun hmacSha256(message: ByteArray, secret: ByteArray): ByteArray {
+		val mac = Mac.getInstance("HmacSHA256")
+		mac.init(SecretKeySpec(secret, "HmacSHA256"))
+
+		return mac.doFinal(message)
+	}
+
+	fun buildJWT(payload: JsonObject, secret: String, options: JsonObject = JsonObject(emptyMap())): String {
+		val header = buildJsonObject {
+			put("alg", "HS256")
+			put("typ", "JWT")
+
+			for ((key, value) in options) {
+				put(key, value)
+			}
+		}
+
+		val encodedHeader = base64url(header.toString().toByteArray(Charsets.UTF_8))
+		val encodedData = base64url(payload.toString().toByteArray(Charsets.UTF_8))
+
+		val signingInput = "$encodedHeader.$encodedData"
+		val signature = base64url(hmacSha256(signingInput.toByteArray(Charsets.UTF_8), secret.toByteArray(Charsets.UTF_8)))
+
+		return "$signingInput.$signature"
+	}
+
+	inline fun <reified T> buildJWT(payload: T, secret: String, options: JsonObject = JsonObject(emptyMap())): String {
+		val payloadObject = jwtJson.encodeToJsonElement(payload) as JsonObject
+
+		return buildJWT(payloadObject, secret, options)
 	}
 
 	// * FMCS cookie obfuscation. NOT real security. The key is derived from local values so

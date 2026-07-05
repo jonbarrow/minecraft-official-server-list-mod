@@ -4,6 +4,8 @@ import net.minecraft.client.Minecraft
 import net.fabricmc.loader.api.FabricLoader
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.time.LocalDateTime
 import java.net.URI
 import java.net.URLEncoder
@@ -72,11 +74,11 @@ import java.time.Duration
 // * - [x] /api/tracking
 // * - [ ] /api/user/delete/[userId]
 // * - [x] /api/user/getServers
-// * - [ ] /api/user/getUserPreferences/[userId]
+// * - [x] /api/user/getUserPreferences/[userId]
 // * - [ ] /api/user/linkGsProfile
 // * - [ ] /api/user/linkGsProfile/activate2FA
 // * - [ ] /api/user/linkGsProfile/isValid
-// * - [ ] /api/user/updateUserPreferences
+// * - [x] /api/user/updateUserPreferences
 // * - [ ] /api/verify-email
 
 object ServerListApi {
@@ -143,6 +145,23 @@ object ServerListApi {
 		loginSession = json.decodeFromString<LoginSessionData>(decrypted)
 
 		return Result.success(loginSession!!)
+	}
+
+	fun fetchUserPreferences(userID: String): Result<UserPreferences> {
+		return request<UserPreferences>("$API_BASE/user/getUserPreferences/$userID")
+	}
+
+	fun updateUserPreferences(userID: String, payload: UpdateUserPreferencesPayload): Result<UserPreferences> {
+		val options = buildJsonObject {
+			put("expiresIn", "60") // * This functionally does nothing, but the real client sends it, so we do too
+		}
+		val token = CryptoUtil.buildJWT(payload, SECURITY_KEY, options)
+		val requestPayload = UpdateUserPreferencesRequest(
+			payload = token,
+			userId = userID
+		)
+
+		return requestPatch<UpdateUserPreferencesRequest, UserPreferences>("$API_BASE/user/updateUserPreferences", requestPayload)
 	}
 
 	fun logout() {
@@ -416,6 +435,8 @@ object ServerListApi {
 		return fetched
 	}
 
+	// TODO - Merge all these request functions into one
+
 	private inline fun <reified TResponse> request(url: String): Result<TResponse> {
 		return try {
 			val request = HttpRequest.newBuilder()
@@ -455,6 +476,33 @@ object ServerListApi {
 			}
 
 			val response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString())
+
+			if (TResponse::class == Unit::class) {
+				@Suppress("UNCHECKED_CAST")
+				return Result.success(Unit as TResponse)
+			}
+
+			val parsed = json.decodeFromString<TResponse>(response.body())
+
+			Result.success(parsed)
+		} catch (e: Exception) {
+			Result.failure(e)
+		}
+	}
+
+	private inline fun <reified TBody, reified TResponse> requestPatch(url: String, body: TBody): Result<TResponse> {
+		return try {
+			val bodyJson = json.encodeToString(body)
+
+			val request = HttpRequest.newBuilder()
+				.uri(URI.create(url))
+				.header("Accept", "application/json")
+				.header("Content-Type", "application/json")
+				.header("User-Agent", USER_AGENT)
+				.method("PATCH", HttpRequest.BodyPublishers.ofString(bodyJson))
+				.build()
+
+			val response = client.send(request, HttpResponse.BodyHandlers.ofString())
 
 			if (TResponse::class == Unit::class) {
 				@Suppress("UNCHECKED_CAST")

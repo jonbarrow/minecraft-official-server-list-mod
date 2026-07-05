@@ -626,3 +626,64 @@ data class VoteRequest(
 data class VoteResult(
 	val success: Boolean
 )
+
+@Serializable
+data class LanguagesPreference(
+	val id: String,
+	val name: String,
+	val description: String,
+	val type: String // * Always "LANGUAGE"
+)
+
+@Serializable
+data class ServersPreference(
+	val id: String,
+	val name: String,
+	val favorite_on: String,
+	val is_active: Boolean
+)
+
+@Serializable
+data class EventsPreference(
+	val id: String,
+	val slug: String,
+	val title: String,
+	val joined_od: String,
+	val event_notification: Boolean
+)
+
+@Serializable
+data class UserPreferences(
+	val id: String, // * Different from userId, I assume it's the ID of the DB record or something?
+	val userId: String,
+	val allowSwearing: Boolean,
+	val platform: String, // TODO - Enum this, one of "JAVA", "BEDROCK", or "BOTH"
+	val playerNewsletter: Boolean,
+	val serverNewsletter: Boolean,
+	val sortPreference: String?, // TODO - Enum this, it's the same as ServerSearchFilters.SortOption
+	val languagesPreferences: List<LanguagesPreference>?,
+	val serversPreferences: List<ServersPreference>?, // * This just seems to be your favorited servers...?
+	val eventsPreferences: List<EventsPreference>?, // * This just seems to be your favorited events...? Even events that are in the past are also stored here
+	val gamerSaferGuildMemberId: String?, // TODO - Confirm this type, I assume it's a string but I don't actually know
+	val gamerSafer2FAActive: Boolean
+)
+
+// * Every field is marked as optional because the official client uses this in 3 different contexts with 3 different sets of fields:
+// * - When updating the main user preferences, the fields allowSwearing, platform, sortPreference and keywords is sent
+// * - When changing whether or not you want to get server news letters, only the serverNewsletter field is sent
+// * - When changing whether or not you want to get server news letters, only the playerNewsletter field is sent
+@Serializable
+data class UpdateUserPreferencesPayload(
+	val allowSwearing: Boolean?,
+	val platform: String?, // TODO - Enum this, one of "JAVA", "BEDROCK", or "BOTH"
+	val playerNewsletter: Boolean?,
+	val serverNewsletter: Boolean?,
+	val sortPreference: String?, // TODO - Enum this, it's the same as ServerSearchFilters.SortOption
+	val keywords: List<String>? // * ServerLanguageTag IDs
+)
+
+@Serializable
+data class UpdateUserPreferencesRequest(
+	val payload: String, // * JWT of UpdateUserPreferencesPayload
+	val userId: String
+)
