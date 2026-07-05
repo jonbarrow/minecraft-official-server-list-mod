@@ -4,12 +4,16 @@
   "officialserverlist.loading_target.server_details": "server details",
   "officialserverlist.loading_target.servers": "servers",
   "officialserverlist.loading_target.event": "event",
+  "officialserverlist.loading_target.account_data": "account data",
 
   "officialserverlist.screen.server_list.title": "Official Server List",
   "officialserverlist.screen.filter_servers.title": "Filter Servers",
   "officialserverlist.screen.sort_servers.title": "Sort By",
   "officialserverlist.screen.server_details.title": "Server Details",
   "officialserverlist.screen.event_details.title": "Event Details",
+  "officialserverlist.screen.user_preferences.title": "Preferences",
+  "officialserverlist.screen.delete_account.title": "Delete Account",
+  "officialserverlist.screen.delete_account.message": "Are you sure you want to permanently delete your FMCS account? This action cannot be undone.",
 
   "officialserverlist.tab.details": "Details",
   "officialserverlist.tab.rules": "Rules",
@@ -17,6 +21,10 @@
   "officialserverlist.tab.badges": "Badges",
   "officialserverlist.tab.events": "Events",
   "officialserverlist.tab.essentials": "Essentials",
+  "officialserverlist.tab.favorite_servers": "Favorite Servers",
+  "officialserverlist.tab.your_servers": "Your Servers",
+  "officialserverlist.tab.favorite_events": "Favorite Events",
+  "officialserverlist.tab.upcoming_events": "Upcoming Events",
 
   "officialserverlist.section.edition": "Edition",
   "officialserverlist.section.official_experiences": "Official Experiences",
@@ -42,6 +50,7 @@
   "officialserverlist.section.prizes": "Prizes",
   "officialserverlist.section.more_info": "More Info",
   "officialserverlist.section.gallery": "Gallery",
+  "officialserverlist.section.primary_languages": "Primary Languages",
 
   "officialserverlist.label.show_official_experiences_only": "Show Only Official Minecraft Experiences",
   "officialserverlist.label.no_address": "No address",
@@ -64,6 +73,10 @@
   "officialserverlist.label.player_joined": "%d player joined",
   "officialserverlist.label.players_joined": "%d players joined",
   "officialserverlist.label.full_text": "Full text: ",
+  "officialserverlist.label.remember_me_disclaimer": "Your FMCS session cookie will be encrypted on disk, but this is mostly obfuscation.\nSee https://github.com/javakeyring/java-keyring for details on why secure secret storage is not always possible in Java apps with a shared JVM.",
+  "officialserverlist.label.logged_in_as": "Logged in as %s",
+  "officialserverlist.label.platform_preference": "Platform",
+  "officialserverlist.label.sort_preference": "Sort Preference",
 
   "officialserverlist.error.unknown": "Unknown error",
 
@@ -80,6 +93,10 @@
   "officialserverlist.empty.no_events": "No events scheduled.",
   "officialserverlist.empty.no_essentials": "No community essentials provided.",
   "officialserverlist.empty.loading": "Loading...",
+  "officialserverlist.empty.no_managed_servers": "No servers managed.",
+  "officialserverlist.empty.no_favorite_servers": "No servers favorited.",
+  "officialserverlist.empty.no_favorite_events": "No events favorited.",
+  "officialserverlist.empty.no_upcoming_events": "No servers coming up.",
 
   "officialserverlist.text_box.search": "Search",
 
@@ -90,6 +107,17 @@
   "officialserverlist.button.server_search_filters_reset": "Reset",
   "officialserverlist.button.add_to_server_list": "Add To Server List",
   "officialserverlist.button.show_server_details": "Show Server Details",
+  "officialserverlist.button.account": "Account",
+  "officialserverlist.button.login": "Login",
+  "officialserverlist.button.link_minecraft_account": "Link Minecraft",
+  "officialserverlist.button.your_servers": "Your Servers",
+  "officialserverlist.button.preferences": "Preferences",
+  "officialserverlist.button.logout": "Logout",
+  "officialserverlist.button.delete_account": "Delete Account",
+  "officialserverlist.button.user_preferences_save": "Save Changes",
+  "officialserverlist.button.delete_account_confirm": "Delete Account",
+
+  "officialserverlist.checkbox.remember_me": "Remember Me",
 
   "officialserverlist.edition.java": "Java",
   "officialserverlist.edition.cross_play": "Cross Play",
@@ -108,5 +136,9 @@
   "officialserverlist.sort.name_asc": "Name A to Z",
   "officialserverlist.sort.name_desc": "Name Z to A",
   "officialserverlist.sort.favorites_desc": "Favorites High to Low",
-  "officialserverlist.sort.favorites_asc": "Favorites Low to High"
+  "officialserverlist.sort.favorites_asc": "Favorites Low to High",
+
+  "officialserverlist.platform.java": "JAVA",
+  "officialserverlist.platform.bedrock": "BEDROCK",
+  "officialserverlist.platform.both": "BOTH"
 }

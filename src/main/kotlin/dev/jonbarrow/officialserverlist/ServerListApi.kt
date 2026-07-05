@@ -1,24 +1,32 @@
 package dev.jonbarrow.officialserverlist
 
 import net.minecraft.client.Minecraft
+import net.fabricmc.loader.api.FabricLoader
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.time.LocalDateTime
 import java.net.URI
 import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.net.CookieManager
+import java.net.CookiePolicy
+import java.net.HttpCookie
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.time.Duration
 
 // * https://findmcserver.com/_next/static/EQXVm_bYrkKWKVrcOxdTp/_buildManifest.js
 // * All API endpoints:
 // *
 // * - [ ] /api
-// * - [ ] /api/auth/getSession
-// * - [ ] /api/auth/logout
-// * - [ ] /api/auth/minecraft-login/[code]
-// * - [ ] /api/auth/[hash]
+// * - [x] /api/auth/getSession
+// * - [x] /api/auth/logout
+// * - [x] /api/auth/minecraft-login/[code]
+// * - [x] /api/auth/[hash]
 // * - [x] /api/badges
 // * - [ ] /api/contact
 // * - [x] /api/events
@@ -28,14 +36,14 @@ import java.time.Duration
 // * - [ ] /api/events/edit/[id]
 // * - [ ] /api/events/edit-details/[userId]/[slug]
 // * - [ ] /api/events/favorite/add
-// * - [ ] /api/events/favorite/list
+// * - [x] /api/events/favorite/list
 // * - [ ] /api/events/favorite/remove
 // * - [ ] /api/events/highlights/[id]
 // * - [x] /api/events/servers/[serverId]
 // * - [x] /api/events/slug/[slug]
 // * - [ ] /api/events/tokens/purchase/[userId]
 // * - [ ] /api/events/tokens/[userId]
-// * - [ ] /api/events/upcoming/[userId]/upcomingEvents
+// * - [x] /api/events/upcoming/[userId]/upcomingEvents
 // * - [ ] /api/launcher/servers
 // * - [ ] /api/launcher/servers/featured
 // * - [x] /api/servers
@@ -47,7 +55,7 @@ import java.time.Duration
 // * - [ ] /api/servers/download/downloadFavoriteServers
 // * - [ ] /api/servers/edit
 // * - [ ] /api/servers/favorite/add
-// * - [ ] /api/servers/favorite/list
+// * - [x] /api/servers/favorite/list
 // * - [ ] /api/servers/favorite/remove
 // * - [ ] /api/servers/hosts
 // * - [ ] /api/servers/serverOperators/addServerOperator
@@ -64,27 +72,39 @@ import java.time.Duration
 // * - [x] /api/tags
 // * - [x] /api/tags/featured
 // * - [x] /api/tracking
-// * - [ ] /api/user/delete/[userId]
-// * - [ ] /api/user/getServers
-// * - [ ] /api/user/getUserPreferences/[userId]
+// * - [x] /api/user/delete/[userId]
+// * - [x] /api/user/getServers
+// * - [x] /api/user/getUserPreferences/[userId]
 // * - [ ] /api/user/linkGsProfile
 // * - [ ] /api/user/linkGsProfile/activate2FA
 // * - [ ] /api/user/linkGsProfile/isValid
-// * - [ ] /api/user/updateUserPreferences
+// * - [x] /api/user/updateUserPreferences
 // * - [ ] /api/verify-email
 
 object ServerListApi {
-	private val client: HttpClient = HttpClient.newBuilder().build()
 	private val json = Json {
 		ignoreUnknownKeys = true
 		coerceInputValues = true
 		explicitNulls = false
 	}
 	private var cachedIPAddress: String? = null // * A few API endpoints consume this, so cache it to not spam the API
+	private val cookieManager = CookieManager().apply {
+		setCookiePolicy(CookiePolicy.ACCEPT_ALL)
+	}
+	private val client: HttpClient = HttpClient.newBuilder().cookieHandler(cookieManager).build()
 
 	private const val IP_INFO_API = "https://ipinfo.io/json" // * This is used for the voting endpoint. This is the API the official website uses, so use it here too for consistency
 	private const val API_BASE = "https://findmcserver.com/api"
-	private const val USER_AGENT = "OfficialServerListMod/1.0 (Fabric Minecraft Mod)" // * Let's be nice and tell them who we are. Don't resort to spoofing just yet
+	private const val USER_AGENT = "OfficialServerListMod/1.1.0 (Fabric Minecraft Mod)" // * Let's be nice and tell them who we are. Don't resort to spoofing just yet
+	private const val SECURITY_KEY = "Mbh6Ku8kVfrvv1DVWekX" // * This is a static key the official client uses to both AES encrypt certain responses and sign client-created JWTs
+	private val SESSION_FILE = FabricLoader.getInstance().configDir.resolve("officialserverlist").resolve("session.dat")
+
+	var persistSessionCookie = false
+	var loginSession: LoginSessionData? = null
+
+	init {
+		loadPersistedCookies()
+	}
 
 	// * Used by the official website for analytics tracking.
 	// * Not used here, but implemented for documentation purposes
@@ -103,6 +123,64 @@ object ServerListApi {
 		)
 
 		return requestPost<TrackingEventRequest, Unit>("$API_BASE/tracking", payload)
+	}
+
+	fun loginWithHash(hash: String) {
+		val response = request<LoginSessionPayload>("$API_BASE/auth/$hash").getOrNull() ?: return
+		val decrypted = CryptoUtil.decryptCryptoJS(response.payload, SECURITY_KEY)
+
+		loginSession = json.decodeFromString<LoginSessionData>(decrypted)
+		persistCookies()
+	}
+
+	fun linkMinecraftAccount(code: String) {
+		loginSession = request<LoginSessionData>("$API_BASE/auth/minecraft-login/$code").getOrNull() ?: return
+		persistCookies()
+	}
+
+	fun getSession(): Result<LoginSessionData> {
+		val response = request<LoginSessionPayload>("$API_BASE/auth/getSession").getOrNull() ?: return Result.failure(Exception("getSession request failed"))
+		val decrypted = CryptoUtil.decryptCryptoJS(response.payload, SECURITY_KEY)
+
+		loginSession = json.decodeFromString<LoginSessionData>(decrypted)
+
+		return Result.success(loginSession!!)
+	}
+
+	fun fetchUserPreferences(userID: String): Result<UserPreferences> {
+		return request<UserPreferences>("$API_BASE/user/getUserPreferences/$userID")
+	}
+
+	fun updateUserPreferences(userID: String, payload: UpdateUserPreferencesPayload): Result<UserPreferences> {
+		val options = buildJsonObject {
+			put("expiresIn", "60") // * This functionally does nothing, but the real client sends it, so we do too
+		}
+		val token = CryptoUtil.buildJWT(payload, SECURITY_KEY, options)
+		val requestPayload = UpdateUserPreferencesRequest(
+			payload = token,
+			userId = userID
+		)
+
+		return requestPatch<UpdateUserPreferencesRequest, UserPreferences>("$API_BASE/user/updateUserPreferences", requestPayload)
+	}
+
+	fun logout() {
+		requestPost<Unit, Unit>("$API_BASE/auth/logout", null)
+		cookieManager.cookieStore.removeAll() // * Endpoint returns a Set-Cookie header to set the cookie to an empty string with maxAge=0, but clear it just in case
+		clearPersistedCookies()
+		loginSession = null
+	}
+
+	fun deleteAccount(userID: String, payload: DeleteAccountPayload): Result<DeleteAccountResponse> {
+		val options = buildJsonObject {
+			put("expiresIn", "60") // * This functionally does nothing, but the real client sends it, so we do too
+		}
+		val token = CryptoUtil.buildJWT(payload, SECURITY_KEY, options)
+		val requestPayload = DeleteAccountRequest(
+			payload = token
+		)
+
+		return requestDelete<DeleteAccountRequest, DeleteAccountResponse>("$API_BASE/user/delete/$userID", requestPayload)
 	}
 
 	// * Used to display the servers on the main https://findmcserver.com home page, before you search
@@ -152,6 +230,47 @@ object ServerListApi {
 		return request<ServerEventsList>("$API_BASE/events/servers/$serverID")
 	}
 
+	// * Gets a list of the users favorited servers
+	fun fetchFavoritedServers(userID: String): Result<List<FavoritedServer>> {
+		val params = mutableListOf<Pair<String, String>>().apply {
+			add("userId" to userID)
+		}
+
+		return request<List<FavoritedServer>>("$API_BASE/servers/favorite/list?" + buildQueryString(params))
+	}
+
+	// * Gets a list of the users owned/managed servers
+	// TODO - I *think* these query paramaters and response type are correct, however I don't own any servers so I don't actually know. Seems right though
+	fun fetchManagedServers(userID: String, filters: ServerSearchFilters, pageSize: Int = 15): Result<ServerSearchResults> {
+		val params = mutableListOf<Pair<String, String>>().apply {
+			add("userId" to userID)
+			add("pageNumber" to filters.pageNumber.toString())
+			add("pageSize" to pageSize.toString())
+			add("sortBy" to filters.sortBy.queryValue)
+			add("edition" to filters.edition.queryValue)
+			add("size" to filters.playerCountQueryValue())
+
+			if (filters.hasExperienceID) {
+				add("hasExperienceId" to "true")
+			}
+
+			if (filters.selectedBadgeIDs.isNotEmpty()) {
+				add("badges" to filters.selectedBadgeIDs.joinToString(","))
+			}
+
+			val tags = filters.allTagIds()
+			if (tags.isNotEmpty()) {
+				add("tags" to tags.joinToString(","))
+			}
+
+			if (filters.searchPhrase.isNotBlank()) {
+				add("searchTerms" to filters.searchPhrase)
+			}
+		}
+
+		return request<ServerSearchResults>("$API_BASE/user/getServers?" + buildQueryString(params))
+	}
+
 	// * Gets the details of a specific event
 	fun fetchEventDetails(slug: String): Result<EventDetails> {
 		return request<EventDetails>("$API_BASE/events/slug/$slug")
@@ -170,6 +289,21 @@ object ServerListApi {
 		}
 
 		return request<ServerEventsList>("$API_BASE/events?" + buildQueryString(params))
+	}
+
+	// * Gets a list of upcoming events registered to users the target user has
+	// * has listed in their favorite servers
+	fun fetchUpcomingEvents(userID: String): Result<List<BasicEventInfo>> {
+		return request<List<BasicEventInfo>>("$API_BASE/events/upcoming/$userID/upcomingEvents")
+	}
+
+	// * Gets a list of the users favorited events
+	fun fetchFavoritedEvents(userID: String): Result<List<ServerEvent>> {
+		val params = mutableListOf<Pair<String, String>>().apply {
+			add("userId" to userID)
+		}
+
+		return request<List<ServerEvent>>("$API_BASE/events/favorite/list?" + buildQueryString(params))
 	}
 
 	// * Gets a list of the badges a server can have.
@@ -202,9 +336,104 @@ object ServerListApi {
 
 	// * Votes for a specific server
 	fun voteForServer(serverID: String): Result<VoteResult> {
-		val username = Minecraft.getInstance().user.name
+		val loginSession = loginSession
+		val username = if (loginSession?.platformUserName != null) loginSession.platformUserName else Minecraft.getInstance().user.name
 		val ipAddress = getIPAddress()
 		return requestPost<VoteRequest, VoteResult>("$API_BASE/servers/vote", VoteRequest(serverID, username, ipAddress))
+	}
+
+	private fun persistCookies() {
+		if (!persistSessionCookie) {
+			return
+		}
+
+		try {
+			val cookies = cookieManager.cookieStore.cookies.map { cookie ->
+				val maxAge = cookie.maxAge
+				val expiresAt = if (maxAge < 0) {
+					-1L
+				} else {
+					System.currentTimeMillis() + maxAge * 1000L
+				}
+
+				PersistedCookie(
+					name = cookie.name,
+					value = cookie.value,
+					domain = cookie.domain,
+					path = cookie.path,
+					expiresAt = expiresAt,
+					secure = cookie.secure,
+					httpOnly = cookie.isHttpOnly,
+					version = cookie.version
+				)
+			}
+
+			if (cookies.isEmpty()) {
+				return
+			}
+
+			val plaintext = json.encodeToString(cookies)
+			val obfuscated = CryptoUtil.obfuscateCookie(plaintext)
+
+			Files.createDirectories(SESSION_FILE.parent)
+			Files.writeString(SESSION_FILE, obfuscated)
+		} catch (e: Exception) {
+			// TODO - Handle this
+		}
+	}
+
+	private fun loadPersistedCookies() {
+		try {
+			if (!Files.exists(SESSION_FILE)) {
+				return
+			}
+
+			val obfuscated = Files.readString(SESSION_FILE)
+			val plaintext = CryptoUtil.deobfuscateCookie(obfuscated) ?: run {
+				// * Yeet the bitch if something goes wrong, just make the user login again
+				clearPersistedCookies()
+				return
+			}
+
+			val cookies = json.decodeFromString<List<PersistedCookie>>(plaintext)
+			val now = System.currentTimeMillis()
+
+			for (persisted in cookies) {
+				val maxAge: Long = if (persisted.expiresAt < 0) {
+					-1L
+				} else {
+					val remaining = persisted.expiresAt - now
+					if (remaining <= 0) {
+						continue
+					}
+
+					remaining / 1000L
+				}
+
+				val cookie = HttpCookie(persisted.name, persisted.value).apply {
+					domain = persisted.domain
+					path = persisted.path
+					this.maxAge = maxAge
+					secure = persisted.secure
+					isHttpOnly = persisted.httpOnly
+					version = persisted.version
+				}
+
+				cookieManager.cookieStore.add(URI.create("https://findmcserver.com"), cookie)
+			}
+
+			getSession()
+		} catch (e: Exception) {
+			clearPersistedCookies()
+		}
+	}
+
+	private fun clearPersistedCookies() {
+		try {
+			Files.deleteIfExists(SESSION_FILE)
+		} catch (e: Exception) {
+			// * Nothing to do if we can't delete it
+		}
 	}
 
 	private fun getIPAddress(): String {
@@ -217,6 +446,8 @@ object ServerListApi {
 
 		return fetched
 	}
+
+	// TODO - Merge all these request functions into one
 
 	private inline fun <reified TResponse> request(url: String): Result<TResponse> {
 		return try {
@@ -242,7 +473,36 @@ object ServerListApi {
 		}
 	}
 
-	private inline fun <reified TBody, reified TResponse> requestPost(url: String, body: TBody): Result<TResponse> {
+	private inline fun <reified TBody, reified TResponse> requestPost(url: String, body: TBody? = null): Result<TResponse> {
+		return try {
+			val builder = HttpRequest.newBuilder()
+				.uri(URI.create(url))
+				.header("Accept", "application/json")
+				.header("User-Agent", USER_AGENT)
+
+			if (body != null) {
+				val bodyJson = json.encodeToString(body)
+				builder.header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(bodyJson))
+			} else {
+				builder.POST(HttpRequest.BodyPublishers.noBody())
+			}
+
+			val response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString())
+
+			if (TResponse::class == Unit::class) {
+				@Suppress("UNCHECKED_CAST")
+				return Result.success(Unit as TResponse)
+			}
+
+			val parsed = json.decodeFromString<TResponse>(response.body())
+
+			Result.success(parsed)
+		} catch (e: Exception) {
+			Result.failure(e)
+		}
+	}
+
+	private inline fun <reified TBody, reified TResponse> requestPatch(url: String, body: TBody): Result<TResponse> {
 		return try {
 			val bodyJson = json.encodeToString(body)
 
@@ -251,7 +511,34 @@ object ServerListApi {
 				.header("Accept", "application/json")
 				.header("Content-Type", "application/json")
 				.header("User-Agent", USER_AGENT)
-				.POST(HttpRequest.BodyPublishers.ofString(bodyJson))
+				.method("PATCH", HttpRequest.BodyPublishers.ofString(bodyJson))
+				.build()
+
+			val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+
+			if (TResponse::class == Unit::class) {
+				@Suppress("UNCHECKED_CAST")
+				return Result.success(Unit as TResponse)
+			}
+
+			val parsed = json.decodeFromString<TResponse>(response.body())
+
+			Result.success(parsed)
+		} catch (e: Exception) {
+			Result.failure(e)
+		}
+	}
+
+	private inline fun <reified TBody, reified TResponse> requestDelete(url: String, body: TBody): Result<TResponse> {
+		return try {
+			val bodyJson = json.encodeToString(body)
+
+			val request = HttpRequest.newBuilder()
+				.uri(URI.create(url))
+				.header("Accept", "application/json")
+				.header("Content-Type", "application/json")
+				.header("User-Agent", USER_AGENT)
+				.method("DELETE", HttpRequest.BodyPublishers.ofString(bodyJson))
 				.build()
 
 			val response = client.send(request, HttpResponse.BodyHandlers.ofString())
