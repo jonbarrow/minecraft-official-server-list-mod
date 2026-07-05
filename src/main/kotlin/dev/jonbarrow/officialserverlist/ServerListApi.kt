@@ -95,7 +95,7 @@ object ServerListApi {
 
 	private const val IP_INFO_API = "https://ipinfo.io/json" // * This is used for the voting endpoint. This is the API the official website uses, so use it here too for consistency
 	private const val API_BASE = "https://findmcserver.com/api"
-	private const val USER_AGENT = "OfficialServerListMod/1.0 (Fabric Minecraft Mod)" // * Let's be nice and tell them who we are. Don't resort to spoofing just yet
+	private const val USER_AGENT = "OfficialServerListMod/1.1.0 (Fabric Minecraft Mod)" // * Let's be nice and tell them who we are. Don't resort to spoofing just yet
 	private const val SECURITY_KEY = "Mbh6Ku8kVfrvv1DVWekX" // * This is a static key the official client uses to both AES encrypt certain responses and sign client-created JWTs
 	private val SESSION_FILE = FabricLoader.getInstance().configDir.resolve("officialserverlist").resolve("session.dat")
 
