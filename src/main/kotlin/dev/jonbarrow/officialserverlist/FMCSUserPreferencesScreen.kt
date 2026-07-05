@@ -124,8 +124,7 @@ class FMCSUserPreferencesScreen(private val parent: Screen, private val currentP
 			ServerListApi.fetchTags("LANGUAGE").getOrNull()
 		}.thenAccept { result ->
 			minecraft.execute {
-				@Suppress("UNCHECKED_CAST")
-				cachedLanguages = result as List<TagListTag>
+				cachedLanguages = result as? List<TagListTag>
 				loading = false
 				clearWidgets()
 				init(width, height)

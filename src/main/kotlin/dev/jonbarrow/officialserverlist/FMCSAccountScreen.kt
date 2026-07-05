@@ -77,17 +77,13 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 			listOf(managedServers, favoriteServers, upcomingEvents, favoriteEvents, userPreferences)
 		}.thenAccept { results ->
 			minecraft.execute {
-				@Suppress("UNCHECKED_CAST")
-				managedServers = results[0] as ServerSearchResults
-				@Suppress("UNCHECKED_CAST")
-				favoriteServers = results[1] as List<FavoritedServer>
-				@Suppress("UNCHECKED_CAST")
-				upcomingEvents = results[2] as List<BasicEventInfo>
-				@Suppress("UNCHECKED_CAST")
-				favoriteEvents = results[3] as List<ServerEvent>
-				@Suppress("UNCHECKED_CAST")
-				userPreferences = results[4] as UserPreferences
+				managedServers = results[0] as? ServerSearchResults
+				favoriteServers = results[1] as? List<FavoritedServer>
+				upcomingEvents = results[2] as? List<BasicEventInfo>
+				favoriteEvents = results[3] as? List<ServerEvent>
+				userPreferences = results[4] as? UserPreferences
 				loading = false
+
 				clearWidgets()
 				init(width, height)
 			}
