@@ -72,7 +72,7 @@ import java.time.Duration
 // * - [x] /api/tags
 // * - [x] /api/tags/featured
 // * - [x] /api/tracking
-// * - [ ] /api/user/delete/[userId]
+// * - [x] /api/user/delete/[userId]
 // * - [x] /api/user/getServers
 // * - [x] /api/user/getUserPreferences/[userId]
 // * - [ ] /api/user/linkGsProfile
@@ -169,6 +169,18 @@ object ServerListApi {
 		cookieManager.cookieStore.removeAll() // * Endpoint returns a Set-Cookie header to set the cookie to an empty string with maxAge=0, but clear it just in case
 		clearPersistedCookies()
 		loginSession = null
+	}
+
+	fun deleteAccount(userID: String, payload: DeleteAccountPayload): Result<DeleteAccountResponse> {
+		val options = buildJsonObject {
+			put("expiresIn", "60") // * This functionally does nothing, but the real client sends it, so we do too
+		}
+		val token = CryptoUtil.buildJWT(payload, SECURITY_KEY, options)
+		val requestPayload = DeleteAccountRequest(
+			payload = token
+		)
+
+		return requestDelete<DeleteAccountRequest, DeleteAccountResponse>("$API_BASE/user/delete/$userID", requestPayload)
 	}
 
 	// * Used to display the servers on the main https://findmcserver.com home page, before you search
@@ -500,6 +512,33 @@ object ServerListApi {
 				.header("Content-Type", "application/json")
 				.header("User-Agent", USER_AGENT)
 				.method("PATCH", HttpRequest.BodyPublishers.ofString(bodyJson))
+				.build()
+
+			val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+
+			if (TResponse::class == Unit::class) {
+				@Suppress("UNCHECKED_CAST")
+				return Result.success(Unit as TResponse)
+			}
+
+			val parsed = json.decodeFromString<TResponse>(response.body())
+
+			Result.success(parsed)
+		} catch (e: Exception) {
+			Result.failure(e)
+		}
+	}
+
+	private inline fun <reified TBody, reified TResponse> requestDelete(url: String, body: TBody): Result<TResponse> {
+		return try {
+			val bodyJson = json.encodeToString(body)
+
+			val request = HttpRequest.newBuilder()
+				.uri(URI.create(url))
+				.header("Accept", "application/json")
+				.header("Content-Type", "application/json")
+				.header("User-Agent", USER_AGENT)
+				.method("DELETE", HttpRequest.BodyPublishers.ofString(bodyJson))
 				.build()
 
 			val response = client.send(request, HttpResponse.BodyHandlers.ofString())

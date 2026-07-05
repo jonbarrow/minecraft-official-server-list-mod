@@ -10,6 +10,7 @@ import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.Checkbox
 import net.minecraft.client.gui.components.ObjectSelectionList
 import net.minecraft.client.gui.components.LoadingDotsWidget
+import net.minecraft.client.gui.screens.ConfirmScreen
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.renderer.RenderPipelines
 import net.minecraft.network.chat.Component
@@ -171,7 +172,9 @@ class FMCSAccountScreen(private val parent: Screen) : Screen(Component.translata
 
 		addRenderableWidget(
 			Button.builder(Component.translatable("officialserverlist.button.delete_account")) {
-				// TODO - stub
+				ConfirmDeleteFMCSAccountScreen.open(this, loginSession.userId) {
+					returnToParent() // * Only runs if the user did delete their account, to pop them back up out of the account settings now that the account is gone
+				}
 			}.bounds(deleteX, bottomRowY, HEADER_BUTTON_WIDTH, HEADER_BUTTON_HEIGHT).build()
 		)
 

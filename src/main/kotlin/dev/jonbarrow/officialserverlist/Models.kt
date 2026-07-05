@@ -687,3 +687,18 @@ data class UpdateUserPreferencesRequest(
 	val payload: String, // * JWT of UpdateUserPreferencesPayload
 	val userId: String
 )
+
+@Serializable
+data class DeleteAccountPayload(
+	val requestedByUserId: String // * Normally always just the same as your own user ID, maybe this means other users/admins can do this for other accounts?
+)
+
+@Serializable
+data class DeleteAccountRequest(
+	val payload: String // * JWT of DeleteAccountPayload
+)
+
+@Serializable
+data class DeleteAccountResponse(
+	val requestId: String // * Unknown, some UUIDv4?
+)

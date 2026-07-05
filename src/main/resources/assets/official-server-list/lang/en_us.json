@@ -12,6 +12,8 @@
   "officialserverlist.screen.server_details.title": "Server Details",
   "officialserverlist.screen.event_details.title": "Event Details",
   "officialserverlist.screen.user_preferences.title": "Preferences",
+  "officialserverlist.screen.delete_account.title": "Delete Account",
+  "officialserverlist.screen.delete_account.message": "Are you sure you want to permanently delete your FMCS account? This action cannot be undone.",
 
   "officialserverlist.tab.details": "Details",
   "officialserverlist.tab.rules": "Rules",
@@ -113,6 +115,7 @@
   "officialserverlist.button.logout": "Logout",
   "officialserverlist.button.delete_account": "Delete Account",
   "officialserverlist.button.user_preferences_save": "Save Changes",
+  "officialserverlist.button.delete_account_confirm": "Delete Account",
 
   "officialserverlist.checkbox.remember_me": "Remember Me",
 
