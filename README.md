@@ -50,3 +50,7 @@ A Fabric mod for Minecraft 26.1.x that integrates https://findmcserver.com (the 
 ## Disclaimer
 
 This mod is an unofficial integration with findmcserver.com. All server listings, badges, descriptions, and other content are property of their respective server owners and findmcserver.com. We are not responsible for the content of any server listed through the integration.
+
+## Credits
+
+- Most social icons: https://lunggolfs.itch.io/social-connect-icons-pack. Store/email icons made by @jonbarrow

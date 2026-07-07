@@ -285,29 +285,30 @@ class ServerDetailsScreen(private val parent: Screen, private val slug: String, 
 		}
 
 		if (data.serverMedias.isNotEmpty()) {
-			val socialIconSize = 15
+			val socialIconWidth = 15
+			val socialIconHeight = 16
 			val iconGap = 4
 			var socialX = left + 6
 			val socialY = iconY + iconSize + 4
 
 			for ((index, media) in data.serverMedias.withIndex()) {
 				val texture = SocialIcons.textureFor(media.social_media.name) ?: continue
-				if (socialX + socialIconSize > textRight) break
+				if (socialX + socialIconWidth > textRight) break
 
-				val hover = mouseX in socialX..(socialX + socialIconSize) && mouseY in socialY..(socialY + socialIconSize)
+				val hover = mouseX in socialX..(socialX + socialIconWidth) && mouseY in socialY..(socialY + socialIconHeight)
 
-				graphics.blit(RenderPipelines.GUI_TEXTURED, texture, socialX, socialY, 0f, 0f, socialIconSize, socialIconSize, socialIconSize, socialIconSize)
+				graphics.blit(RenderPipelines.GUI_TEXTURED, texture, socialX, socialY, 0f, 0f, socialIconWidth, socialIconHeight, socialIconWidth, socialIconHeight)
 				if (hover) {
-					graphics.fill(socialX, socialY, socialX + socialIconSize, socialY + socialIconSize, 0x4055FFFF)
+					graphics.fill(socialX, socialY, socialX + socialIconWidth, socialY + socialIconHeight, 0x4055FFFF)
 				}
 
 				headerLinks.add(IconLink(
 					socialX, socialY,
-					socialX + socialIconSize, socialY + socialIconSize,
+					socialX + socialIconWidth, socialY + socialIconHeight,
 					media.url, media.social_media.name
 				))
 
-				socialX += socialIconSize + iconGap
+				socialX += socialIconWidth + iconGap
 			}
 		}
 	}
