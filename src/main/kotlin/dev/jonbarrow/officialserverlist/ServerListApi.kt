@@ -19,7 +19,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.time.Duration
 
-// * https://findmcserver.com/_next/static/EQXVm_bYrkKWKVrcOxdTp/_buildManifest.js
+// * https://findmcserver.com/_next/static/LXx_EeiRp4m3mLesjU8mq/_buildManifest.js
 // * All API endpoints:
 // *
 // * - [ ] /api
@@ -45,6 +45,7 @@ import java.time.Duration
 // * - [ ] /api/events/tokens/[userId]
 // * - [x] /api/events/upcoming/[userId]/upcomingEvents
 // * - [ ] /api/launcher/servers
+// * - [ ] /api/launcher/servers/complete
 // * - [ ] /api/launcher/servers/featured
 // * - [x] /api/servers
 // * - [ ] /api/servers/create
