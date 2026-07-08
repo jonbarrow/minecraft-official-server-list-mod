@@ -57,7 +57,7 @@ import java.time.Duration
 // * - [ ] /api/servers/edit
 // * - [x] /api/servers/favorite/add
 // * - [x] /api/servers/favorite/list
-// * - [ ] /api/servers/favorite/remove
+// * - [x] /api/servers/favorite/remove
 // * - [x] /api/servers/hosts
 // * - [ ] /api/servers/serverOperators/addServerOperator
 // * - [ ] /api/servers/serverOperators/removeServerOperator
@@ -262,6 +262,24 @@ object ServerListApi {
 		)
 
 		return requestPost<AddServerToFavoritesRequest, AddServerToFavoritesResponse>("$API_BASE/servers/favorite/add", requestPayload)
+	}
+
+	// * Removes a server from the users favorited servers list.
+	// * Technically returns the string "true", but returning Unit is easier for now
+	fun removeServerFromFavorites(userID: String, serverID: String): Result<Unit> {
+		val payload = RemoveServerFromFavoritesPayload(
+			userId = userID,
+			serverId = serverID
+		)
+		val options = buildJsonObject {
+			put("expiresIn", "60") // * This functionally does nothing, but the real client sends it, so we do too
+		}
+		val token = CryptoUtil.buildJWT(payload, SECURITY_KEY, options)
+		val requestPayload = RemoveServerFromFavoritesRequest(
+			payload = token
+		)
+
+		return requestPost<RemoveServerFromFavoritesRequest, Unit>("$API_BASE/servers/favorite/remove", requestPayload)
 	}
 
 	// * Gets a list of the users owned/managed servers

@@ -760,3 +760,16 @@ data class AddServerToFavoritesResponse(
 	val serverId: String,
 	val favoriteOn: String
 )
+
+// TODO - Same structure as AddServerToFavoritesPayload, merge?
+@Serializable
+data class RemoveServerFromFavoritesPayload(
+	val userId: String,
+	val serverId: String
+)
+
+// TODO - Same structure as AddServerToFavoritesRequest, merge?
+@Serializable
+data class RemoveServerFromFavoritesRequest(
+	val payload: String // * JWT of RemoveServerFromFavoritesPayload
+)
