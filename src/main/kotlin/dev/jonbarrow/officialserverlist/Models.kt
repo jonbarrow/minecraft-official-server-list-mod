@@ -321,6 +321,22 @@ data class ServerSearchResults(
 )
 
 @Serializable
+data class DiscoverServersAndFetchFeaturedTagsTag(
+	val id: String,
+	val name: String, // TODO - Should this be an enum? Values seem to be "CREATIVE", "PVE", "SURVIVAL", "ALL-AGES", "CROSS-PLATFORM", "GRIEF-PROTECTION"
+	val type: String, // * Always "CATEGORY"?
+	val description: String?, // * Always null?
+	val createdAt: String,
+	val isActive: Boolean
+)
+
+@Serializable
+data class DiscoverServersAndFetchFeaturedTagsResponse(
+	val discoverServers: ServerSearchResults,
+	val featuredTags: List<DiscoverServersAndFetchFeaturedTagsTag>
+)
+
+@Serializable
 data class ServerDetailsBadge(
 	val id: String,
 	val name: String,

@@ -22,7 +22,7 @@ import java.time.Duration
 // * https://findmcserver.com/_next/static/LXx_EeiRp4m3mLesjU8mq/_buildManifest.js
 // * All API endpoints:
 // *
-// * - [ ] /api
+// * - [x] /api
 // * - [x] /api/auth/getSession
 // * - [x] /api/auth/logout
 // * - [x] /api/auth/minecraft-login/[code]
@@ -182,6 +182,12 @@ object ServerListApi {
 		)
 
 		return requestDelete<DeleteAccountRequest, DeleteAccountResponse>("$API_BASE/user/delete/$userID", requestPayload)
+	}
+
+	// * Returns a combination of /api/servers/discover and /api/tags/featured?
+	// * Unsure what the usecase here is
+	fun discoverServersAndFetchFeaturedTags(): Result<DiscoverServersAndFetchFeaturedTagsResponse> {
+		return request<DiscoverServersAndFetchFeaturedTagsResponse>("$API_BASE")
 	}
 
 	// * Used to display the servers on the main https://findmcserver.com home page, before you search
