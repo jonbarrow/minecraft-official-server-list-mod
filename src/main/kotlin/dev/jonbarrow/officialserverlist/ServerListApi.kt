@@ -58,7 +58,7 @@ import java.time.Duration
 // * - [ ] /api/servers/favorite/add
 // * - [x] /api/servers/favorite/list
 // * - [ ] /api/servers/favorite/remove
-// * - [ ] /api/servers/hosts
+// * - [x] /api/servers/hosts
 // * - [ ] /api/servers/serverOperators/addServerOperator
 // * - [ ] /api/servers/serverOperators/removeServerOperator
 // * - [ ] /api/servers/status
@@ -342,6 +342,15 @@ object ServerListApi {
 		val ipAddress = getIPAddress()
 		return requestPost<VoteRequest, VoteResult>("$API_BASE/servers/vote", VoteRequest(serverID, username, ipAddress))
 	}
+
+	// * Gets a list of Minecraft server hosts FMCS officially recognizes
+	// * Requires a login session, otherwise this endpoint throws 401, presumably
+	// * because it's only used during the "add a server" flow?
+	fun fetchServerHosts(): Result<ServerHostListResponse> {
+		return request<ServerHostListResponse>("$API_BASE/servers/hosts")
+	}
+
+	// * Helpers
 
 	private fun persistCookies() {
 		if (!persistSessionCookie) {

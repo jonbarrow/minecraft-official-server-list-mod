@@ -167,6 +167,13 @@ enum class RolesType {
 }
 
 @Serializable
+enum class ServerHostType {
+	UNKNOWN,
+	MINOR,
+	MAJOR
+}
+
+@Serializable
 data class PersistedCookie(
 	val name: String,
 	val value: String,
@@ -701,4 +708,21 @@ data class DeleteAccountRequest(
 @Serializable
 data class DeleteAccountResponse(
 	val requestId: String // * Unknown, some UUIDv4?
+)
+
+@Serializable
+data class ServerHost(
+	val id: String, // * Server host ID
+	val name: String, // * Server host name
+	val hostType: ServerHostType, // * Server host type
+	val termsOfService: String?, // * Link to hosts ToS
+	val discord: String?, // * Discord invite link
+	val email: String?, // * Server host contact email
+	val createdAt: String, // * Date the server host was added to the list?
+	val isActive: Boolean // * Whether or not the server host is active
+)
+
+@Serializable
+data class ServerHostListResponse(
+	val hosts: List<ServerHost>
 )
