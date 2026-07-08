@@ -55,7 +55,7 @@ import java.time.Duration
 // * - [x] /api/servers/discover
 // * - [ ] /api/servers/download/downloadFavoriteServers
 // * - [ ] /api/servers/edit
-// * - [ ] /api/servers/favorite/add
+// * - [x] /api/servers/favorite/add
 // * - [x] /api/servers/favorite/list
 // * - [ ] /api/servers/favorite/remove
 // * - [x] /api/servers/hosts
@@ -244,6 +244,24 @@ object ServerListApi {
 		}
 
 		return request<List<FavoritedServer>>("$API_BASE/servers/favorite/list?" + buildQueryString(params))
+	}
+
+	// * Adds a server to the users favorited servers list
+	// TODO - Just get the user ID from the login session? This goes for all the other methods that take in the current users userID
+	fun addServerToFavorites(userID: String, serverID: String): Result<AddServerToFavoritesResponse> {
+		val payload = AddServerToFavoritesPayload(
+			userId = userID,
+			serverId = serverID
+		)
+		val options = buildJsonObject {
+			put("expiresIn", "60") // * This functionally does nothing, but the real client sends it, so we do too
+		}
+		val token = CryptoUtil.buildJWT(payload, SECURITY_KEY, options)
+		val requestPayload = AddServerToFavoritesRequest(
+			payload = token
+		)
+
+		return requestPost<AddServerToFavoritesRequest, AddServerToFavoritesResponse>("$API_BASE/servers/favorite/add", requestPayload)
 	}
 
 	// * Gets a list of the users owned/managed servers

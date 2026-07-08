@@ -742,3 +742,21 @@ data class ServerHost(
 data class ServerHostListResponse(
 	val hosts: List<ServerHost>
 )
+
+@Serializable
+data class AddServerToFavoritesPayload(
+	val userId: String,
+	val serverId: String
+)
+
+@Serializable
+data class AddServerToFavoritesRequest(
+	val payload: String // * JWT of AddServerToFavoritesPayload
+)
+
+@Serializable
+data class AddServerToFavoritesResponse(
+	val userId: String,
+	val serverId: String,
+	val favoriteOn: String
+)
